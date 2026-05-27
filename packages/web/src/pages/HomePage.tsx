@@ -36,11 +36,15 @@ type MeData = {
 
 export function HomePage() {
   const [activeRound, setActiveRound] = useState("group");
-  const [activeGroup, setActiveGroup] = useState("A");
+  const [activeGroup, setActiveGroup] = useState<string | null>("A");
   const [summaryUser, setSummaryUser] = useState<{ userId: string; username: string } | null>(null);
 
   const variables =
-    activeRound === "group" ? { round: "group", group: activeGroup } : { round: activeRound };
+    activeRound === "group"
+      ? activeGroup
+        ? { round: "group", group: activeGroup }
+        : { round: "group" }
+      : { round: activeRound };
 
   const [result, reexecute] = useQuery<{ matches: MatchData[] }>({
     query: MatchesQuery,
@@ -84,7 +88,7 @@ export function HomePage() {
               key={g}
               type="button"
               className={`tab${activeGroup === g ? " active" : ""}`}
-              onClick={() => setActiveGroup(g)}
+              onClick={() => setActiveGroup(activeGroup === g ? null : g)}
             >
               Group {g}
             </button>
