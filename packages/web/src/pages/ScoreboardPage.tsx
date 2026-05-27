@@ -33,43 +33,44 @@ export function ScoreboardPage() {
     return <div className="loading">Loading…</div>;
   }
 
+  const MEDALS: Record<number, string> = { 1: "🥇", 2: "🥈", 3: "🥉" };
+
   return (
     <div className="scoreboard-page">
       <NavBar currentUser={me} />
-      <h1>🏆 Scoreboard</h1>
-      <table>
-        <thead>
-          <tr>
-            <th>Rank</th>
-            <th>Username</th>
-            <th>Points</th>
-            <th>🎯 Correct</th>
-          </tr>
-        </thead>
-        <tbody>
-          {entries.map((entry) => (
-            <tr key={entry.user.id} className={entry.user.id === me?.id ? "my-row" : undefined}>
-              <td>{entry.rank}</td>
-              <td>
-                <button
-                  type="button"
-                  className="username-btn"
-                  onClick={() =>
-                    setSummaryUser({ userId: entry.user.id, username: entry.user.username })
-                  }
-                >
-                  {entry.user.username}
-                </button>
-                <Link href={`/user/${entry.user.id}`}>↗</Link>
-              </td>
-              <td>{entry.totalPoints}</td>
-              <td>
-                {entry.correctPicks} / {entry.totalPicks}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <div className="scoreboard-header">
+        <h1>🏆 Scoreboard</h1>
+        <span className="scoreboard-count">{entries.length} players</span>
+      </div>
+      <div className="leaderboard">
+        {entries.map((entry) => {
+          const isMe = entry.user.id === me?.id;
+          const medal = MEDALS[entry.rank];
+          return (
+            <div key={entry.user.id} className={`leaderboard-row${isMe ? " is-me" : ""}`}>
+              <span className="lb-rank">{medal ?? entry.rank}</span>
+              <span className="lb-avatar">{entry.user.username[0]?.toUpperCase()}</span>
+              <button
+                type="button"
+                className="lb-username"
+                onClick={() =>
+                  setSummaryUser({ userId: entry.user.id, username: entry.user.username })
+                }
+              >
+                {entry.user.username}
+                {isMe && <span className="lb-you">you</span>}
+              </button>
+              <span className="lb-correct">
+                {entry.correctPicks}/{entry.totalPicks}
+              </span>
+              <span className="lb-points">{entry.totalPoints} pts</span>
+              <Link href={`/user/${entry.user.id}`} className="lb-profile-link">
+                ↗
+              </Link>
+            </div>
+          );
+        })}
+      </div>
       {summaryUser && (
         <UserSummaryModal
           userId={summaryUser.userId}

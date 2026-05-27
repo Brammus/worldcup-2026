@@ -40,13 +40,13 @@ describe("ScoreboardPage", () => {
     expect(container.textContent).toContain("2"); // rank 2
   });
 
-  it("highlights current user's row with class my-row", async () => {
+  it("highlights current user's row with class is-me", async () => {
     const { container } = await renderWithMocks(withRouter(<ScoreboardPage />), {
       Leaderboard: { leaderboard: leaderboardData },
       Me: { me: { id: "u1", username: "alice", isAdmin: false } },
     });
 
-    const myRow = container.querySelector("tr.my-row");
+    const myRow = container.querySelector(".leaderboard-row.is-me");
     expect(myRow).not.toBeNull();
     expect(myRow?.textContent).toContain("alice");
   });
@@ -62,7 +62,7 @@ describe("ScoreboardPage", () => {
     const userLinks = Array.from(links).filter((a) => a.getAttribute("href")?.startsWith("/user/"));
     expect(userLinks.length).toBeGreaterThan(0);
     // Username buttons should also exist
-    const usernameBtns = container.querySelectorAll("button.username-btn");
+    const usernameBtns = container.querySelectorAll("button.lb-username");
     expect(usernameBtns.length).toBeGreaterThan(0);
   });
 
