@@ -12,6 +12,7 @@ export const typeDefs = /* GraphQL */ `
     login(username: String!, password: String!): AuthResult!
     logout: Boolean!
     setPick(matchId: ID!, teamId: ID!): Pick!
+    setResult(matchId: ID!, winnerId: ID, homeScore: Int!, awayScore: Int!): Match!
   }
 
   type AuthResult {
@@ -21,6 +22,7 @@ export const typeDefs = /* GraphQL */ `
   type User {
     id: ID!
     username: String!
+    isAdmin: Boolean!
   }
 
   type Team {
@@ -51,6 +53,7 @@ export const typeDefs = /* GraphQL */ `
     pickedTeamId: ID!
     match: Match!
     pickedTeam: Team!
+    points: Int
   }
 
   type MatchResult {
@@ -58,5 +61,6 @@ export const typeDefs = /* GraphQL */ `
     homeScore: Int!
     awayScore: Int!
     winnerTeamId: ID
+    winner: Team
   }
 `;

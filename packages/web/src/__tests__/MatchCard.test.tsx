@@ -60,4 +60,35 @@ describe("MatchCard", () => {
       expect((btn as HTMLButtonElement).disabled).toBe(true);
     }
   });
+
+  it("shows score when result is present", () => {
+    const match = {
+      ...baseMatch,
+      result: { homeScore: 2, awayScore: 1, winnerTeamId: "team-1" },
+    };
+    const { container } = render(createElement(MatchCard, { match, onPick: mock() }));
+    expect(container.querySelector(".score")?.textContent).toContain("2");
+    expect(container.querySelector(".score")?.textContent).toContain("1");
+  });
+
+  it("shows ✓ and points for correct pick when result is present", () => {
+    const match = {
+      ...baseMatch,
+      myPick: { pickedTeamId: "team-1", points: 2 },
+      result: { homeScore: 2, awayScore: 1, winnerTeamId: "team-1" },
+    };
+    const { container } = render(createElement(MatchCard, { match, onPick: mock() }));
+    expect(container.querySelector(".pick-result")?.textContent).toContain("✓");
+    expect(container.querySelector(".pick-result")?.textContent).toContain("+2");
+  });
+
+  it("shows ✗ for wrong pick when result is present", () => {
+    const match = {
+      ...baseMatch,
+      myPick: { pickedTeamId: "team-2", points: 0 },
+      result: { homeScore: 2, awayScore: 1, winnerTeamId: "team-1" },
+    };
+    const { container } = render(createElement(MatchCard, { match, onPick: mock() }));
+    expect(container.querySelector(".pick-result")?.textContent).toContain("✗");
+  });
 });

@@ -1,6 +1,7 @@
 import { Route, Router, Switch } from "wouter";
 import { memoryLocation } from "wouter/memory-location";
 import { AuthGuard } from "./components/AuthGuard";
+import { AdminPage } from "./pages/AdminPage";
 import { HomePage } from "./pages/HomePage";
 import { LoginPage } from "./pages/LoginPage";
 import { RegisterPage } from "./pages/RegisterPage";
@@ -10,6 +11,11 @@ function Routes() {
     <Switch>
       <Route path="/login" component={LoginPage} />
       <Route path="/register" component={RegisterPage} />
+      <Route path="/admin">
+        <AuthGuard>
+          <AdminPage />
+        </AuthGuard>
+      </Route>
       <Route path="/">
         <AuthGuard>
           <HomePage />

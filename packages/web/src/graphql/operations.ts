@@ -3,6 +3,7 @@ export const MeQuery = `
     me {
       id
       username
+      isAdmin
     }
   }
 `;
@@ -48,7 +49,20 @@ export const MatchesQuery = `
       awayTeam { id name group }
       startsAt
       isLocked
-      myPick { pickedTeamId }
+      myPick { pickedTeamId points }
+      result { homeScore awayScore winnerTeamId }
+    }
+  }
+`;
+
+export const SetResultMutation = `
+  mutation SetResult($matchId: ID!, $winnerId: ID, $homeScore: Int!, $awayScore: Int!) {
+    setResult(matchId: $matchId, winnerId: $winnerId, homeScore: $homeScore, awayScore: $awayScore) {
+      id
+      round
+      homeTeamLabel
+      awayTeamLabel
+      result { homeScore awayScore winnerTeamId }
     }
   }
 `;

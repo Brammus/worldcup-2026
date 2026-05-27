@@ -1,5 +1,6 @@
 type Team = { id: string; name: string; group: string } | null;
-type Pick = { pickedTeamId: string } | null;
+type Pick = { pickedTeamId: string; points?: number | null } | null;
+type MatchResult = { homeScore: number; awayScore: number; winnerTeamId: string | null } | null;
 
 type Match = {
   id: string;
@@ -11,6 +12,7 @@ type Match = {
   startsAt: string;
   isLocked: boolean;
   myPick: Pick;
+  result?: MatchResult;
 };
 
 type Props = {
@@ -23,6 +25,8 @@ export function MatchCard({ match, onPick }: Props) {
   const awayId = match.awayTeam?.id ?? null;
   const noTeams = !homeId || !awayId;
   const pickedId = match.myPick?.pickedTeamId ?? null;
+  const result = match.result ?? null;
+  const points = match.myPick?.points ?? null;
 
   const kickoff = new Date(match.startsAt).toLocaleString(undefined, {
     month: "short",
@@ -53,9 +57,18 @@ export function MatchCard({ match, onPick }: Props) {
       <div className="match-meta">{kickoff}</div>
       <div className="match-teams">
         {pickBtn(match.homeTeamLabel, homeId)}
-        <span className="vs">vs</span>
+        {result ? (
+          <span className="score">
+            {result.homeScore} – {result.awayScore}
+          </span>
+        ) : (
+          <span className="vs">vs</span>
+        )}
         {pickBtn(match.awayTeamLabel, awayId)}
       </div>
+      {result && pickedId && (
+        <span className="pick-result">{points !== null && points > 0 ? `✓ +${points}` : "✗"}</span>
+      )}
     </div>
   );
 }
