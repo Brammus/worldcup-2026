@@ -261,6 +261,12 @@ a:hover {
   color: white;
 }
 
+.pick-btn.picked:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+  color: white;
+}
+
 .pick-btn:disabled {
   opacity: 0.55;
   cursor: not-allowed;
