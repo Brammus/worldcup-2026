@@ -5,7 +5,7 @@ import { useLocation } from "wouter";
 import { MeQuery } from "../graphql/operations";
 
 export function AuthGuard({ children }: { children: ReactNode }) {
-  const [result] = useQuery({ query: MeQuery });
+  const [result] = useQuery({ query: MeQuery, requestPolicy: "network-only" });
   const [, navigate] = useLocation();
 
   useEffect(() => {
