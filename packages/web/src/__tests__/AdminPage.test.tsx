@@ -66,8 +66,9 @@ describe("AdminPage", () => {
       },
     });
 
-    const homeInput = container.querySelector("input[aria-label='Home score']") as HTMLInputElement;
-    const awayInput = container.querySelector("input[aria-label='Away score']") as HTMLInputElement;
+    const inputs = container.querySelectorAll("input[type='number']");
+    const homeInput = inputs[0] as HTMLInputElement;
+    const awayInput = inputs[1] as HTMLInputElement;
     const submitBtn = container.querySelector("button[type='submit']") as HTMLButtonElement;
 
     flushSync(() => {

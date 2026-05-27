@@ -64,32 +64,55 @@ function MatchResultForm({
 
   return (
     <form className="result-form" onSubmit={handleSubmit}>
-      <input
-        type="number"
-        aria-label="Home score"
-        value={homeScore}
-        onChange={(e) => setHomeScore(e.target.value)}
-        min={0}
-      />
-      <span>–</span>
-      <input
-        type="number"
-        aria-label="Away score"
-        value={awayScore}
-        onChange={(e) => setAwayScore(e.target.value)}
-        min={0}
-      />
-      <select
-        aria-label="Winner"
-        value={winner}
-        onChange={(e) => setWinner(e.target.value as "home" | "away" | "draw")}
-      >
-        <option value="home">{match.homeTeamLabel}</option>
-        <option value="away">{match.awayTeamLabel}</option>
-        {isGroup && <option value="draw">Draw</option>}
-      </select>
-      <button type="submit">Submit</button>
-      {error && <span className="error">{error}</span>}
+      <div className="result-score-row">
+        <div className="score-field">
+          <label className="score-label">
+            {match.homeTeamLabel}
+            <input
+              className="score-input"
+              type="number"
+              placeholder="0"
+              value={homeScore}
+              onChange={(e) => setHomeScore(e.target.value)}
+              min={0}
+            />
+          </label>
+        </div>
+        <span className="score-sep">–</span>
+        <div className="score-field">
+          <label className="score-label">
+            {match.awayTeamLabel}
+            <input
+              className="score-input"
+              type="number"
+              placeholder="0"
+              value={awayScore}
+              onChange={(e) => setAwayScore(e.target.value)}
+              min={0}
+            />
+          </label>
+        </div>
+      </div>
+      <div className="result-bottom-row">
+        <div className="winner-field">
+          <label className="winner-label">
+            Winner
+            <select
+              className="winner-select"
+              value={winner}
+              onChange={(e) => setWinner(e.target.value as "home" | "away" | "draw")}
+            >
+              <option value="home">{match.homeTeamLabel}</option>
+              <option value="away">{match.awayTeamLabel}</option>
+              {isGroup && <option value="draw">Draw</option>}
+            </select>
+          </label>
+        </div>
+        <button type="submit" className="result-submit-btn">
+          Save result
+        </button>
+      </div>
+      {error && <div className="error-banner">{error}</div>}
     </form>
   );
 }
@@ -108,26 +131,54 @@ export function AdminPage() {
 
   const pending = (matchesResult.data?.matches ?? []).filter((m) => !m.result);
 
+  const ROUND_LABELS: Record<string, string> = {
+    group: "Group Stage",
+    r32: "R32",
+    r16: "R16",
+    qf: "QF",
+    sf: "SF",
+    final: "Final",
+    third_place: "3rd Place",
+  };
+
   return (
     <div className="admin-page">
       <NavBar currentUser={me} />
-      <h1>🛠 Admin</h1>
+      <div className="admin-header">
+        <h1>🛠 Admin</h1>
+        <span className="admin-subtitle">Record match results</span>
+      </div>
       {pending.length === 0 ? (
-        <p>All results recorded.</p>
+        <div className="admin-all-done">✅ All results recorded.</div>
       ) : (
-        <ul className="pending-matches">
+        <div className="admin-match-list">
           {pending.map((match) => (
-            <li key={match.id} className="pending-match">
-              <span className="match-label">
-                {match.homeTeamLabel} vs {match.awayTeamLabel}
-              </span>
+            <div key={match.id} className="admin-match-card">
+              <div className="admin-match-header">
+                <span className="admin-round-badge">
+                  {ROUND_LABELS[match.round] ?? match.round}
+                </span>
+                <span className="admin-match-time">
+                  {new Date(match.startsAt).toLocaleString(undefined, {
+                    month: "short",
+                    day: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </span>
+              </div>
+              <div className="admin-match-teams">
+                {match.homeTeamLabel}
+                <span className="admin-vs">vs</span>
+                {match.awayTeamLabel}
+              </div>
               <MatchResultForm
                 match={match}
                 onDone={() => reexecute({ requestPolicy: "network-only" })}
               />
-            </li>
+            </div>
           ))}
-        </ul>
+        </div>
       )}
     </div>
   );
