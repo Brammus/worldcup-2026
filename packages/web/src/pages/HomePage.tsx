@@ -1,0 +1,98 @@
+import { useState } from "react";
+import { useMutation, useQuery } from "urql";
+import { MatchCard } from "../components/MatchCard";
+import { MatchesQuery, SetPickMutation } from "../graphql/operations";
+
+const ROUNDS = [
+  { value: "group", label: "Group Stage" },
+  { value: "r32", label: "Round of 32" },
+  { value: "r16", label: "Round of 16" },
+  { value: "qf", label: "Quarters" },
+  { value: "sf", label: "Semis" },
+  { value: "final", label: "Final" },
+];
+
+const GROUPS = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L"];
+
+type MatchData = {
+  id: string;
+  round: string;
+  matchday: number | null;
+  group: string | null;
+  homeTeamLabel: string;
+  awayTeamLabel: string;
+  homeTeam: { id: string; name: string; group: string } | null;
+  awayTeam: { id: string; name: string; group: string } | null;
+  startsAt: string;
+  isLocked: boolean;
+  myPick: { pickedTeamId: string } | null;
+};
+
+export function HomePage() {
+  const [activeRound, setActiveRound] = useState("group");
+  const [activeGroup, setActiveGroup] = useState("A");
+
+  const variables =
+    activeRound === "group" ? { round: "group", group: activeGroup } : { round: activeRound };
+
+  const [result, reexecute] = useQuery<{ matches: MatchData[] }>({
+    query: MatchesQuery,
+    variables,
+    requestPolicy: "cache-and-network",
+  });
+
+  const [, setPick] = useMutation(SetPickMutation);
+
+  async function handlePick(matchId: string, teamId: string) {
+    await setPick({ matchId, teamId });
+    reexecute({ requestPolicy: "network-only" });
+  }
+
+  const matches = result.data?.matches ?? [];
+
+  return (
+    <div className="home-page">
+      <header className="home-header">
+        <h1>World Cup 2026</h1>
+      </header>
+
+      <nav className="round-tabs">
+        {ROUNDS.map((r) => (
+          <button
+            key={r.value}
+            type="button"
+            className={`tab${activeRound === r.value ? " active" : ""}`}
+            onClick={() => setActiveRound(r.value)}
+          >
+            {r.label}
+          </button>
+        ))}
+      </nav>
+
+      {activeRound === "group" && (
+        <nav className="group-tabs">
+          {GROUPS.map((g) => (
+            <button
+              key={g}
+              type="button"
+              className={`tab${activeGroup === g ? " active" : ""}`}
+              onClick={() => setActiveGroup(g)}
+            >
+              Group {g}
+            </button>
+          ))}
+        </nav>
+      )}
+
+      {result.fetching && matches.length === 0 ? (
+        <div className="loading">Loading…</div>
+      ) : (
+        <div className="match-list">
+          {matches.map((match) => (
+            <MatchCard key={match.id} match={match} onPick={handlePick} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}

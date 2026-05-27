@@ -159,3 +159,115 @@ a:hover {
   font-size: 0.875rem;
   margin-bottom: 16px;
 }
+
+/* ── Home / match browser ─────────────────────────────────────── */
+
+.home-page {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 24px 16px;
+}
+
+.home-header {
+  margin-bottom: 24px;
+}
+
+.home-header h1 {
+  font-size: 1.75rem;
+  font-weight: 800;
+}
+
+.round-tabs,
+.group-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.tab {
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  color: var(--color-text-muted);
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+
+.tab.active {
+  background: var(--color-primary);
+  color: white;
+  border-color: var(--color-primary);
+}
+
+.match-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ── Match card ───────────────────────────────────────────────── */
+
+.match-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 16px;
+  box-shadow: var(--shadow);
+}
+
+.match-meta {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  margin-bottom: 10px;
+}
+
+.match-teams {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.vs {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.pick-btn {
+  flex: 1;
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  border: 2px solid var(--color-border);
+  background: var(--color-surface);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.12s, background 0.12s, color 0.12s;
+  color: var(--color-text);
+}
+
+.pick-btn:hover:not(:disabled) {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.pick-btn.picked {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: white;
+}
+
+.pick-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.loading {
+  text-align: center;
+  color: var(--color-text-muted);
+  padding: 48px 0;
+}

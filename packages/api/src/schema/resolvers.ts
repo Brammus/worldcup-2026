@@ -3,7 +3,7 @@ import { GraphQLError } from "graphql";
 import { buildAuthCookie, clearAuthCookie } from "../auth/cookies";
 import { signToken } from "../auth/jwt";
 import type { DB } from "../db/client";
-import { matches, teams, users } from "../db/schema";
+import { matchResults, matches, picks, teams, users } from "../db/schema";
 
 export type CurrentUser = {
   id: string;
@@ -45,6 +45,11 @@ export const resolvers = {
             .from(matches)
             .where(conditions.length === 1 ? conditions[0] : and(...conditions))
         : ctx.db.select().from(matches);
+    },
+
+    myPicks: async (_: unknown, __: unknown, ctx: GraphQLContext) => {
+      if (!ctx.currentUser) throw new GraphQLError("Not authenticated");
+      return ctx.db.select().from(picks).where(eq(picks.userId, ctx.currentUser.id));
     },
   },
 
@@ -96,6 +101,28 @@ export const resolvers = {
       ctx.responseHeaders.set("Set-Cookie", clearAuthCookie());
       return true;
     },
+
+    setPick: async (
+      _: unknown,
+      { matchId, teamId }: { matchId: string; teamId: string },
+      ctx: GraphQLContext,
+    ) => {
+      if (!ctx.currentUser) throw new GraphQLError("Not authenticated");
+
+      const [match] = await ctx.db.select().from(matches).where(eq(matches.id, matchId));
+      if (!match) throw new GraphQLError("Match not found");
+      if (match.startsAt <= new Date()) throw new GraphQLError("Match is locked");
+
+      const [pick] = await ctx.db
+        .insert(picks)
+        .values({ userId: ctx.currentUser.id, matchId, pickedTeamId: teamId })
+        .onConflictDoUpdate({
+          target: [picks.userId, picks.matchId],
+          set: { pickedTeamId: teamId },
+        })
+        .returning();
+      return pick;
+    },
   },
 
   Team: {
@@ -118,5 +145,36 @@ export const resolvers = {
     },
 
     startsAt: (match: { startsAt: Date }) => match.startsAt.toISOString(),
+
+    isLocked: (match: { startsAt: Date }) => match.startsAt <= new Date(),
+
+    myPick: async (match: { id: string }, _: unknown, ctx: GraphQLContext) => {
+      if (!ctx.currentUser) return null;
+      const [pick] = await ctx.db
+        .select()
+        .from(picks)
+        .where(and(eq(picks.matchId, match.id), eq(picks.userId, ctx.currentUser.id)));
+      return pick ?? null;
+    },
+
+    result: async (match: { id: string }, _: unknown, ctx: GraphQLContext) => {
+      const [result] = await ctx.db
+        .select()
+        .from(matchResults)
+        .where(eq(matchResults.matchId, match.id));
+      return result ?? null;
+    },
+  },
+
+  Pick: {
+    match: async (pick: { matchId: string }, _: unknown, ctx: GraphQLContext) => {
+      const [match] = await ctx.db.select().from(matches).where(eq(matches.id, pick.matchId));
+      return match;
+    },
+
+    pickedTeam: async (pick: { pickedTeamId: string }, _: unknown, ctx: GraphQLContext) => {
+      const [team] = await ctx.db.select().from(teams).where(eq(teams.id, pick.pickedTeamId));
+      return team;
+    },
   },
 };

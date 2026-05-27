@@ -36,6 +36,9 @@ bun test
 # or per-package
 bun run --filter '*' test
 
+# Coverage report (per-file line/function %)
+bun run coverage
+
 # Typecheck
 bun run typecheck
 

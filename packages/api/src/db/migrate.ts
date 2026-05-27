@@ -8,7 +8,7 @@ const connectionString =
 export async function runMigrations() {
   const sql = postgres(connectionString, { max: 1 });
   const db = drizzle(sql);
-  await migrate(db, { migrationsFolder: "./src/db/migrations" });
+  await migrate(db, { migrationsFolder: new URL("./migrations", import.meta.url).pathname });
   await sql.end();
 }
 

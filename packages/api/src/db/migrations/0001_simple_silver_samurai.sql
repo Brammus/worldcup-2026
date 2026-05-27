@@ -1,0 +1,1 @@
+ALTER TABLE "picks" ADD CONSTRAINT "picks_user_match_unique" UNIQUE("user_id","match_id");

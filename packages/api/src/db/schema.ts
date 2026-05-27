@@ -1,4 +1,4 @@
-import { boolean, integer, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { boolean, integer, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
 
 export const teams = pgTable("teams", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -27,19 +27,23 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
-export const picks = pgTable("picks", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  userId: uuid("user_id")
-    .notNull()
-    .references(() => users.id),
-  matchId: uuid("match_id")
-    .notNull()
-    .references(() => matches.id),
-  pickedTeamId: uuid("picked_team_id")
-    .notNull()
-    .references(() => teams.id),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+export const picks = pgTable(
+  "picks",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id),
+    matchId: uuid("match_id")
+      .notNull()
+      .references(() => matches.id),
+    pickedTeamId: uuid("picked_team_id")
+      .notNull()
+      .references(() => teams.id),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [unique("picks_user_match_unique").on(t.userId, t.matchId)],
+);
 
 export const matchResults = pgTable("match_results", {
   matchId: uuid("match_id")

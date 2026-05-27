@@ -50,5 +50,13 @@ jobs:
         working-directory: packages/api
         run: bun run db:migrate && bun run db:seed
 
-      - name: Test
-        run: bun run test
+      - name: Test with coverage
+        run: bun run coverage 2>&1 | tee /tmp/coverage.txt
+
+      - name: Post coverage summary
+        if: always()
+        run: |
+          echo "## Coverage" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          grep -A 20 "File" /tmp/coverage.txt | grep -v "NOTICE\|severity\|code\|message\|file\|line\|routine" >> $GITHUB_STEP_SUMMARY || true
+          echo '```' >> $GITHUB_STEP_SUMMARY

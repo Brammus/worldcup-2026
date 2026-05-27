@@ -4,12 +4,14 @@ export const typeDefs = /* GraphQL */ `
     teams: [Team!]!
     team(id: ID!): Team
     matches(round: String, group: String): [Match!]!
+    myPicks: [Pick!]!
   }
 
   type Mutation {
     register(username: String!, password: String!): AuthResult!
     login(username: String!, password: String!): AuthResult!
     logout: Boolean!
+    setPick(matchId: ID!, teamId: ID!): Pick!
   }
 
   type AuthResult {
@@ -38,5 +40,23 @@ export const typeDefs = /* GraphQL */ `
     awayTeamLabel: String!
     venue: String!
     startsAt: String!
+    isLocked: Boolean!
+    myPick: Pick
+    result: MatchResult
+  }
+
+  type Pick {
+    id: ID!
+    matchId: ID!
+    pickedTeamId: ID!
+    match: Match!
+    pickedTeam: Team!
+  }
+
+  type MatchResult {
+    matchId: ID!
+    homeScore: Int!
+    awayScore: Int!
+    winnerTeamId: ID
   }
 `;
