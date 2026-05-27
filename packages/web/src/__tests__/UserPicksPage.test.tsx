@@ -64,6 +64,7 @@ describe("UserPicksPage", () => {
   it("renders picks with match labels", async () => {
     const { container } = await renderWithMocks(withRouter(), {
       UserPicks: { userPicks: picksData },
+      Me: { me: null },
     });
 
     expect(container.textContent).toContain("France");
@@ -75,6 +76,7 @@ describe("UserPicksPage", () => {
   it("shows pending text for picks without a result", async () => {
     const { container } = await renderWithMocks(withRouter(), {
       UserPicks: { userPicks: picksData },
+      Me: { me: null },
     });
 
     const pendingEl = container.querySelector(".pending");
@@ -85,17 +87,19 @@ describe("UserPicksPage", () => {
   it("shows correct indicator for correct picks", async () => {
     const { container } = await renderWithMocks(withRouter(), {
       UserPicks: { userPicks: picksData },
+      Me: { me: null },
     });
 
     const correctEl = container.querySelector(".correct");
     expect(correctEl).not.toBeNull();
     // Should contain a checkmark or +2
-    expect(correctEl?.textContent).toMatch(/✓|\+2/);
+    expect(correctEl?.textContent).toMatch(/✅|\+2/);
   });
 
   it("shows wrong indicator for incorrect picks", async () => {
     const { container } = await renderWithMocks(withRouter(), {
       UserPicks: { userPicks: picksData },
+      Me: { me: null },
     });
 
     const wrongEl = container.querySelector(".wrong");
@@ -105,6 +109,7 @@ describe("UserPicksPage", () => {
   it("renders summary with correct/total/points", async () => {
     const { container } = await renderWithMocks(withRouter(), {
       UserPicks: { userPicks: picksData },
+      Me: { me: null },
     });
 
     const summary = container.querySelector(".summary");

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery } from "urql";
+import { NavBar } from "../components/NavBar";
 import { MatchesQuery, MeQuery, SetResultMutation } from "../graphql/operations";
 
 type MatchResult = { homeScore: number; awayScore: number; winnerTeamId: string | null } | null;
@@ -109,7 +110,8 @@ export function AdminPage() {
 
   return (
     <div className="admin-page">
-      <h1>Admin — Set Results</h1>
+      <NavBar currentUser={me} />
+      <h1>🛠 Admin</h1>
       {pending.length === 0 ? (
         <p>All results recorded.</p>
       ) : (

@@ -7,6 +7,12 @@ export const typeDefs = /* GraphQL */ `
     myPicks: [Pick!]!
     leaderboard: [LeaderboardEntry!]!
     userPicks(userId: ID!): [Pick!]!
+    matchPicks(matchId: ID!): [MatchPick!]!
+  }
+
+  type MatchPick {
+    user: User!
+    pickedTeam: Team!
   }
 
   type LeaderboardEntry {

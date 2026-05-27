@@ -1,5 +1,8 @@
+import { useState } from "react";
 import { useQuery } from "urql";
 import { Link } from "wouter";
+import { NavBar } from "../components/NavBar";
+import { UserSummaryModal } from "../components/UserSummaryModal";
 import { LeaderboardQuery, MeQuery } from "../graphql/operations";
 
 type LeaderboardEntry = {
@@ -15,6 +18,8 @@ type MeData = {
 };
 
 export function ScoreboardPage() {
+  const [summaryUser, setSummaryUser] = useState<{ userId: string; username: string } | null>(null);
+
   const [leaderboardResult] = useQuery<{ leaderboard: LeaderboardEntry[] }>({
     query: LeaderboardQuery,
   });
@@ -30,14 +35,15 @@ export function ScoreboardPage() {
 
   return (
     <div className="scoreboard-page">
-      <h1>Scoreboard</h1>
+      <NavBar currentUser={me} />
+      <h1>🏆 Scoreboard</h1>
       <table>
         <thead>
           <tr>
             <th>Rank</th>
             <th>Username</th>
             <th>Points</th>
-            <th>Correct / Total</th>
+            <th>🎯 Correct</th>
           </tr>
         </thead>
         <tbody>
@@ -45,7 +51,16 @@ export function ScoreboardPage() {
             <tr key={entry.user.id} className={entry.user.id === me?.id ? "my-row" : undefined}>
               <td>{entry.rank}</td>
               <td>
-                <Link href={`/user/${entry.user.id}`}>{entry.user.username}</Link>
+                <button
+                  type="button"
+                  className="username-btn"
+                  onClick={() =>
+                    setSummaryUser({ userId: entry.user.id, username: entry.user.username })
+                  }
+                >
+                  {entry.user.username}
+                </button>
+                <Link href={`/user/${entry.user.id}`}>↗</Link>
               </td>
               <td>{entry.totalPoints}</td>
               <td>
@@ -55,6 +70,13 @@ export function ScoreboardPage() {
           ))}
         </tbody>
       </table>
+      {summaryUser && (
+        <UserSummaryModal
+          userId={summaryUser.userId}
+          username={summaryUser.username}
+          onClose={() => setSummaryUser(null)}
+        />
+      )}
     </div>
   );
 }

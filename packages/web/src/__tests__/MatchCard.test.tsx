@@ -1,7 +1,9 @@
 import { describe, expect, it, mock } from "bun:test";
 import { createElement } from "react";
+import { Router } from "wouter";
+import { memoryLocation } from "wouter/memory-location";
 import { MatchCard } from "../components/MatchCard";
-import { render } from "./test-utils";
+import { render, renderWithMocks } from "./test-utils";
 
 const baseMatch = {
   id: "match-1",
@@ -71,24 +73,55 @@ describe("MatchCard", () => {
     expect(container.querySelector(".score")?.textContent).toContain("1");
   });
 
-  it("shows ✓ and points for correct pick when result is present", () => {
+  it("shows ✅ and points for correct pick when result is present", () => {
     const match = {
       ...baseMatch,
       myPick: { pickedTeamId: "team-1", points: 2 },
       result: { homeScore: 2, awayScore: 1, winnerTeamId: "team-1" },
     };
     const { container } = render(createElement(MatchCard, { match, onPick: mock() }));
-    expect(container.querySelector(".pick-result")?.textContent).toContain("✓");
+    expect(container.querySelector(".pick-result")?.textContent).toContain("✅");
     expect(container.querySelector(".pick-result")?.textContent).toContain("+2");
   });
 
-  it("shows ✗ for wrong pick when result is present", () => {
+  it("shows ❌ for wrong pick when result is present", () => {
     const match = {
       ...baseMatch,
       myPick: { pickedTeamId: "team-2", points: 0 },
       result: { homeScore: 2, awayScore: 1, winnerTeamId: "team-1" },
     };
     const { container } = render(createElement(MatchCard, { match, onPick: mock() }));
-    expect(container.querySelector(".pick-result")?.textContent).toContain("✗");
+    expect(container.querySelector(".pick-result")?.textContent).toContain("❌");
+  });
+
+  it("renders expand toggle button", () => {
+    const { container } = render(createElement(MatchCard, { match: baseMatch, onPick: mock() }));
+    const toggleBtn = container.querySelector(".toggle-picks-btn");
+    expect(toggleBtn).not.toBeNull();
+    expect(toggleBtn?.textContent).toContain("See picks");
+  });
+
+  it("shows picks section when expanded", async () => {
+    const { hook } = memoryLocation({ path: "/" });
+    const wrapper = (
+      <Router hook={hook}>
+        <MatchCard match={baseMatch} onPick={mock()} />
+      </Router>
+    );
+    const { container } = await renderWithMocks(wrapper, {
+      MatchPicks: {
+        matchPicks: [
+          {
+            user: { id: "u1", username: "alice" },
+            pickedTeam: { id: "t1", name: "France", group: "A" },
+          },
+        ],
+      },
+    });
+    const toggleBtn = container.querySelector(".toggle-picks-btn") as HTMLButtonElement;
+    expect(toggleBtn).not.toBeNull();
+    const { flushSync } = await import("react-dom");
+    flushSync(() => toggleBtn.click());
+    expect(container.querySelector(".match-picks-list")).not.toBeNull();
   });
 });

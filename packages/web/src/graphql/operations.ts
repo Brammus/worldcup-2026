@@ -99,10 +99,20 @@ export const UserPicksQuery = `
       match {
         id
         round
+        group
         homeTeamLabel
         awayTeamLabel
         result { homeScore awayScore winnerTeamId }
       }
+      pickedTeam { id name group }
+    }
+  }
+`;
+
+export const MatchPicksQuery = `
+  query MatchPicks($matchId: ID!) {
+    matchPicks(matchId: $matchId) {
+      user { id username }
       pickedTeam { id name group }
     }
   }

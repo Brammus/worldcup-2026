@@ -149,6 +149,60 @@ describe("Pick.pickedTeam", () => {
   });
 });
 
+describe("Query.matchPicks", () => {
+  it("returns picks with user and team for a match", async () => {
+    const pickRow = { id: "p1", matchId: "m1", pickedTeamId: "abc", userId: "u1" };
+    const userRow = { id: "u1", username: "alice", isAdmin: false };
+    const teamRow = { id: "abc", name: "France", groupLetter: "I" };
+
+    // Mock DB: select().from().where() called 3 times:
+    //   1st call returns [pickRow] (picks for matchId)
+    //   2nd call returns [userRow] (user lookup)
+    //   3rd call returns [teamRow] (team lookup)
+    let callCount = 0;
+    const ctx: GraphQLContext = {
+      db: {
+        select: () => ({
+          from: () => ({
+            where: () => {
+              callCount += 1;
+              if (callCount === 1) return Promise.resolve([pickRow]);
+              if (callCount === 2) return Promise.resolve([userRow]);
+              return Promise.resolve([teamRow]);
+            },
+          }),
+        }),
+      } as unknown as GraphQLContext["db"],
+      currentUser: null,
+      responseHeaders: new Headers(),
+    };
+
+    const result = await resolvers.Query.matchPicks(undefined, { matchId: "m1" }, ctx);
+    expect(result).toHaveLength(1);
+    expect(result[0]).toEqual({
+      user: { id: "u1", username: "alice", isAdmin: false },
+      pickedTeam: teamRow,
+    });
+  });
+
+  it("returns empty array when no picks exist for match", async () => {
+    const ctx: GraphQLContext = {
+      db: {
+        select: () => ({
+          from: () => ({
+            where: () => Promise.resolve([]),
+          }),
+        }),
+      } as unknown as GraphQLContext["db"],
+      currentUser: null,
+      responseHeaders: new Headers(),
+    };
+
+    const result = await resolvers.Query.matchPicks(undefined, { matchId: "no-match" }, ctx);
+    expect(result).toHaveLength(0);
+  });
+});
+
 describe("Mutation.register re-throw", () => {
   it("re-throws non-unique DB errors", async () => {
     const dbError = new Error("connection refused");

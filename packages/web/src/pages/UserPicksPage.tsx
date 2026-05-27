@@ -1,6 +1,11 @@
 import { useQuery } from "urql";
 import { useParams } from "wouter";
-import { UserPicksQuery } from "../graphql/operations";
+import { NavBar } from "../components/NavBar";
+import { MeQuery, UserPicksQuery } from "../graphql/operations";
+
+type MeData = {
+  me: { id: string; username: string; isAdmin: boolean } | null;
+};
 
 type PickMatch = {
   id: string;
@@ -21,12 +26,12 @@ type Pick = {
 
 function PickOutcome({ pick }: { pick: Pick }) {
   if (!pick.match.result) {
-    return <span className="pending">pending</span>;
+    return <span className="pending">⏳ pending</span>;
   }
   if (pick.points != null && pick.points > 0) {
-    return <span className="correct">✓ +{pick.points}</span>;
+    return <span className="correct">✅ +{pick.points}</span>;
   }
-  return <span className="wrong">✗</span>;
+  return <span className="wrong">❌</span>;
 }
 
 export function UserPicksPage() {
@@ -37,6 +42,9 @@ export function UserPicksPage() {
     variables: { userId },
     pause: !userId,
   });
+
+  const [meResult] = useQuery<MeData>({ query: MeQuery });
+  const me = meResult.data?.me ?? null;
 
   const userPicks = result.data?.userPicks ?? [];
 
@@ -59,6 +67,8 @@ export function UserPicksPage() {
 
   return (
     <div className="user-picks-page">
+      <NavBar currentUser={me} />
+      <h1>🎯 Picks</h1>
       <div className="summary">
         {correctPicks} correct / {totalPicks} picks / {totalPoints} points
       </div>

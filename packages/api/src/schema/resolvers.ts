@@ -121,6 +121,22 @@ export const resolvers = {
     userPicks: async (_: unknown, { userId }: { userId: string }, ctx: GraphQLContext) => {
       return ctx.db.select().from(picks).where(eq(picks.userId, userId));
     },
+
+    matchPicks: async (_: unknown, { matchId }: { matchId: string }, ctx: GraphQLContext) => {
+      const matchPickRows = await ctx.db.select().from(picks).where(eq(picks.matchId, matchId));
+      const result = [];
+      for (const pick of matchPickRows) {
+        const [user] = await ctx.db.select().from(users).where(eq(users.id, pick.userId));
+        const [team] = await ctx.db.select().from(teams).where(eq(teams.id, pick.pickedTeamId));
+        if (user && team) {
+          result.push({
+            user: { id: user.id, username: user.username, isAdmin: user.isAdmin },
+            pickedTeam: team,
+          });
+        }
+      }
+      return result;
+    },
   },
 
   Mutation: {

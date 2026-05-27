@@ -1,16 +1,17 @@
 import { useState } from "react";
 import { useMutation, useQuery } from "urql";
-import { Link } from "wouter";
 import { MatchCard } from "../components/MatchCard";
-import { MatchesQuery, SetPickMutation } from "../graphql/operations";
+import { NavBar } from "../components/NavBar";
+import { UserSummaryModal } from "../components/UserSummaryModal";
+import { MatchesQuery, MeQuery, SetPickMutation } from "../graphql/operations";
 
 const ROUNDS = [
-  { value: "group", label: "Group Stage" },
+  { value: "group", label: "Group Stage ⚽" },
   { value: "r32", label: "Round of 32" },
   { value: "r16", label: "Round of 16" },
-  { value: "qf", label: "Quarters" },
-  { value: "sf", label: "Semis" },
-  { value: "final", label: "Final" },
+  { value: "qf", label: "Quarters 🔥" },
+  { value: "sf", label: "Semis 🔥" },
+  { value: "final", label: "Final 🏆" },
 ];
 
 const GROUPS = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L"];
@@ -29,9 +30,14 @@ type MatchData = {
   myPick: { pickedTeamId: string } | null;
 };
 
+type MeData = {
+  me: { id: string; username: string; isAdmin: boolean } | null;
+};
+
 export function HomePage() {
   const [activeRound, setActiveRound] = useState("group");
   const [activeGroup, setActiveGroup] = useState("A");
+  const [summaryUser, setSummaryUser] = useState<{ userId: string; username: string } | null>(null);
 
   const variables =
     activeRound === "group" ? { round: "group", group: activeGroup } : { round: activeRound };
@@ -42,6 +48,8 @@ export function HomePage() {
     requestPolicy: "cache-and-network",
   });
 
+  const [meResult] = useQuery<MeData>({ query: MeQuery });
+
   const [, setPick] = useMutation(SetPickMutation);
 
   async function handlePick(matchId: string, teamId: string) {
@@ -50,13 +58,12 @@ export function HomePage() {
   }
 
   const matches = result.data?.matches ?? [];
+  const me = meResult.data?.me ?? null;
 
   return (
     <div className="home-page">
-      <header className="home-header">
-        <h1>World Cup 2026</h1>
-        <Link href="/scoreboard">Scoreboard</Link>
-      </header>
+      <NavBar currentUser={me} />
+      <h1>⚽ World Cup 2026</h1>
 
       <nav className="round-tabs">
         {ROUNDS.map((r) => (
@@ -91,9 +98,21 @@ export function HomePage() {
       ) : (
         <div className="match-list">
           {matches.map((match) => (
-            <MatchCard key={match.id} match={match} onPick={handlePick} />
+            <MatchCard
+              key={match.id}
+              match={match}
+              onPick={handlePick}
+              onUsernameClick={(userId, username) => setSummaryUser({ userId, username })}
+            />
           ))}
         </div>
+      )}
+      {summaryUser && (
+        <UserSummaryModal
+          userId={summaryUser.userId}
+          username={summaryUser.username}
+          onClose={() => setSummaryUser(null)}
+        />
       )}
     </div>
   );

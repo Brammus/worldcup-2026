@@ -51,17 +51,19 @@ describe("ScoreboardPage", () => {
     expect(myRow?.textContent).toContain("alice");
   });
 
-  it("renders usernames as links", async () => {
+  it("renders usernames with links to user pages", async () => {
     const { container } = await renderWithMocks(withRouter(<ScoreboardPage />), {
       Leaderboard: { leaderboard: leaderboardData },
       Me: { me: null },
     });
 
+    // At least one link points to a user page (the ↗ link)
     const links = container.querySelectorAll("a");
-    expect(links.length).toBeGreaterThan(0);
-    // At least one link points to a user page
     const userLinks = Array.from(links).filter((a) => a.getAttribute("href")?.startsWith("/user/"));
     expect(userLinks.length).toBeGreaterThan(0);
+    // Username buttons should also exist
+    const usernameBtns = container.querySelectorAll("button.username-btn");
+    expect(usernameBtns.length).toBeGreaterThan(0);
   });
 
   it("shows loading state when fetching", async () => {

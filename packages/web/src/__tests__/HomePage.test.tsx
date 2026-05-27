@@ -28,6 +28,7 @@ describe("HomePage", () => {
   it("renders round tabs", async () => {
     const { container } = await renderWithMocks(withRouter(<HomePage />), {
       Matches: { matches: [] },
+      Me: { me: null },
     });
     expect(container.textContent).toContain("Group Stage");
     expect(container.textContent).toContain("Final");
@@ -36,6 +37,7 @@ describe("HomePage", () => {
   it("renders group tabs when on Group Stage", async () => {
     const { container } = await renderWithMocks(withRouter(<HomePage />), {
       Matches: { matches: [] },
+      Me: { me: null },
     });
     expect(container.textContent).toContain("Group A");
     expect(container.textContent).toContain("Group L");
@@ -44,6 +46,7 @@ describe("HomePage", () => {
   it("renders match cards from query data", async () => {
     const { container } = await renderWithMocks(withRouter(<HomePage />), {
       Matches: { matches: [sampleMatch] },
+      Me: { me: null },
     });
     expect(container.textContent).toContain("France");
     expect(container.textContent).toContain("Germany");
@@ -52,9 +55,10 @@ describe("HomePage", () => {
   it("does not render group tabs for knockout rounds", async () => {
     const { container } = await renderWithMocks(withRouter(<HomePage />), {
       Matches: { matches: [] },
+      Me: { me: null },
     });
-    const finalTab = Array.from(container.querySelectorAll(".tab")).find(
-      (el) => el.textContent === "Final",
+    const finalTab = Array.from(container.querySelectorAll(".tab")).find((el) =>
+      el.textContent?.includes("Final"),
     ) as HTMLButtonElement;
     flushSync(() => finalTab.click());
     expect(container.querySelector(".group-tabs")).toBeNull();
@@ -64,6 +68,7 @@ describe("HomePage", () => {
     const { container } = await renderWithMocks(withRouter(<HomePage />), {
       Matches: { matches: [sampleMatch] },
       SetPick: { setPick: { id: "p1", matchId: "m1", pickedTeamId: "t1" } },
+      Me: { me: null },
     });
     const pickBtn = container.querySelector("button[data-team-id]") as HTMLButtonElement;
     flushSync(() => pickBtn.click());

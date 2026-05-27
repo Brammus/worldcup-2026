@@ -1,3 +1,7 @@
+import { useState } from "react";
+import { useQuery } from "urql";
+import { MatchPicksQuery } from "../graphql/operations";
+
 type Team = { id: string; name: string; group: string } | null;
 type Pick = { pickedTeamId: string; points?: number | null } | null;
 type MatchResult = { homeScore: number; awayScore: number; winnerTeamId: string | null } | null;
@@ -18,15 +22,29 @@ type Match = {
 type Props = {
   match: Match;
   onPick: (matchId: string, teamId: string) => void;
+  onUsernameClick?: (userId: string, username: string) => void;
 };
 
-export function MatchCard({ match, onPick }: Props) {
+type MatchPickRow = {
+  user: { id: string; username: string };
+  pickedTeam: { id: string; name: string; group: string };
+};
+
+export function MatchCard({ match, onPick, onUsernameClick }: Props) {
+  const [expanded, setExpanded] = useState(false);
+
   const homeId = match.homeTeam?.id ?? null;
   const awayId = match.awayTeam?.id ?? null;
   const noTeams = !homeId || !awayId;
   const pickedId = match.myPick?.pickedTeamId ?? null;
   const result = match.result ?? null;
   const points = match.myPick?.points ?? null;
+
+  const [picksResult] = useQuery<{ matchPicks: MatchPickRow[] }>({
+    query: MatchPicksQuery,
+    variables: { matchId: match.id },
+    pause: !expanded,
+  });
 
   const kickoff = new Date(match.startsAt).toLocaleString(undefined, {
     month: "short",
@@ -67,7 +85,42 @@ export function MatchCard({ match, onPick }: Props) {
         {pickBtn(match.awayTeamLabel, awayId)}
       </div>
       {result && pickedId && (
-        <span className="pick-result">{points !== null && points > 0 ? `✓ +${points}` : "✗"}</span>
+        <span className="pick-result">
+          {points !== null && points > 0 ? `✅ +${points}` : "❌"}
+        </span>
+      )}
+      <button
+        type="button"
+        className="toggle-picks-btn"
+        onClick={() => setExpanded((prev) => !prev)}
+      >
+        {expanded ? "👥 Hide picks ▲" : "👥 See picks ▼"}
+      </button>
+      {expanded && (
+        <div className="match-picks-list">
+          {picksResult.fetching ? (
+            <div className="loading">Loading…</div>
+          ) : (
+            <>
+              {(picksResult.data?.matchPicks ?? []).length === 0 ? (
+                <div className="no-picks">No picks yet</div>
+              ) : (
+                (picksResult.data?.matchPicks ?? []).map((mp) => (
+                  <div key={mp.user.id} className="match-pick-row">
+                    <button
+                      type="button"
+                      className="username-link"
+                      onClick={() => onUsernameClick?.(mp.user.id, mp.user.username)}
+                    >
+                      {mp.user.username}
+                    </button>
+                    : {mp.pickedTeam.name}
+                  </div>
+                ))
+              )}
+            </>
+          )}
+        </div>
       )}
     </div>
   );
