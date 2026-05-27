@@ -5,8 +5,7 @@ build
 .env.local
 *.local
 
-# Drizzle
-packages/api/src/db/migrations/meta
+# Drizzle generated snapshots are intentionally committed
 
 # Codegen output
 packages/web/src/gql/
