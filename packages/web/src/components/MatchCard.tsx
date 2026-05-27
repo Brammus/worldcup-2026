@@ -84,19 +84,37 @@ export function MatchCard({ match, onPick, onUsernameClick }: Props) {
         )}
         {pickBtn(match.awayTeamLabel, awayId)}
       </div>
-      {result && pickedId && (
-        <span className="pick-result">
-          {points !== null && points > 0 ? `✅ +${points}` : "❌"}
-        </span>
-      )}
-      <button
-        type="button"
-        className={`toggle-picks-btn${expanded ? " expanded" : ""}`}
-        onClick={() => setExpanded((prev) => !prev)}
-      >
-        <span className="toggle-picks-label">👥 Picks</span>
-        <span className="toggle-picks-chevron">▾</span>
-      </button>
+      <div className="match-footer">
+        {result && pickedId ? (
+          <span className="pick-result">
+            {points !== null && points > 0 ? `✅ +${points}` : "❌"}
+          </span>
+        ) : (
+          <span />
+        )}
+        <button
+          type="button"
+          className={`toggle-picks-btn${expanded ? " expanded" : ""}`}
+          onClick={() => setExpanded((prev) => !prev)}
+        >
+          <span>Picks</span>
+          <svg
+            className="chevron-icon"
+            viewBox="0 0 12 12"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            aria-hidden="true"
+          >
+            <path
+              d="M2 4l4 4 4-4"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </button>
+      </div>
       <div className={`match-picks-list${expanded ? " expanded" : ""}`}>
         <div className="match-picks-inner">
           {picksResult.fetching ? (
