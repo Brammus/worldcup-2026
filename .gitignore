@@ -4,6 +4,8 @@ build
 .env
 .env.local
 *.local
+packages/api/.env
+packages/web/.env
 
 # Drizzle generated snapshots are intentionally committed
 

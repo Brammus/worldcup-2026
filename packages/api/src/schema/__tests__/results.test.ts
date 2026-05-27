@@ -9,7 +9,7 @@ import { resolvers } from "../resolvers";
 // ── helpers ──────────────────────────────────────────────────────────────────
 
 function makeCtx(overrides: Partial<GraphQLContext> = {}): GraphQLContext {
-  return { db, currentUser: null, responseHeaders: new Headers(), ...overrides };
+  return { db, currentUser: null, responseHeaders: new Headers(), ip: "127.0.0.1", ...overrides };
 }
 
 const FUTURE = new Date(Date.now() + 3_600_000);
@@ -118,6 +118,28 @@ describe("Mutation.setResult", () => {
         ctx,
       ),
     ).rejects.toThrow("Forbidden");
+  });
+
+  it("throws for negative homeScore", async () => {
+    const ctx = makeCtx({ currentUser: { id: adminUserId, username: "admin", isAdmin: true } });
+    await expect(
+      resolvers.Mutation.setResult(
+        undefined,
+        { matchId: groupMatchId, winnerId: homeTeamId, homeScore: -1, awayScore: 0 },
+        ctx,
+      ),
+    ).rejects.toThrow("Scores must be non-negative");
+  });
+
+  it("throws for negative awayScore", async () => {
+    const ctx = makeCtx({ currentUser: { id: adminUserId, username: "admin", isAdmin: true } });
+    await expect(
+      resolvers.Mutation.setResult(
+        undefined,
+        { matchId: groupMatchId, winnerId: homeTeamId, homeScore: 0, awayScore: -1 },
+        ctx,
+      ),
+    ).rejects.toThrow("Scores must be non-negative");
   });
 });
 

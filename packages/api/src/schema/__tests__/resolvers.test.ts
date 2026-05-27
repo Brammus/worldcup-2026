@@ -11,6 +11,7 @@ function makeTeamsCtx(result: unknown): GraphQLContext {
     } as unknown as GraphQLContext["db"],
     currentUser: null,
     responseHeaders: new Headers(),
+    ip: "127.0.0.1",
   };
 }
 
@@ -21,6 +22,7 @@ function makeTeamCtx(result: unknown): GraphQLContext {
     } as unknown as GraphQLContext["db"],
     currentUser: null,
     responseHeaders: new Headers(),
+    ip: "127.0.0.1",
   };
 }
 
@@ -53,6 +55,7 @@ function makeWhereCtx(result: unknown): GraphQLContext {
     } as unknown as GraphQLContext["db"],
     currentUser: null,
     responseHeaders: new Headers(),
+    ip: "127.0.0.1",
   };
 }
 
@@ -150,15 +153,24 @@ describe("Pick.pickedTeam", () => {
 });
 
 describe("Query.matchPicks", () => {
-  it("returns picks with user and team for a match", async () => {
+  const lockedMatch = {
+    id: "m1",
+    startsAt: new Date(Date.now() - 60_000), // past = locked
+    round: "group",
+    homeTeamId: "abc",
+    awayTeamId: "def",
+  };
+
+  it("returns picks with user and team for a locked match", async () => {
     const pickRow = { id: "p1", matchId: "m1", pickedTeamId: "abc", userId: "u1" };
     const userRow = { id: "u1", username: "alice", isAdmin: false };
     const teamRow = { id: "abc", name: "France", groupLetter: "I" };
 
-    // Mock DB: select().from().where() called 3 times:
-    //   1st call returns [pickRow] (picks for matchId)
-    //   2nd call returns [userRow] (user lookup)
-    //   3rd call returns [teamRow] (team lookup)
+    // DB calls in order:
+    //   1. match lookup (lock check)
+    //   2. picks for matchId
+    //   3. users inArray (Promise.all first)
+    //   4. teams inArray (Promise.all second)
     let callCount = 0;
     const ctx: GraphQLContext = {
       db: {
@@ -166,8 +178,9 @@ describe("Query.matchPicks", () => {
           from: () => ({
             where: () => {
               callCount += 1;
-              if (callCount === 1) return Promise.resolve([pickRow]);
-              if (callCount === 2) return Promise.resolve([userRow]);
+              if (callCount === 1) return Promise.resolve([lockedMatch]);
+              if (callCount === 2) return Promise.resolve([pickRow]);
+              if (callCount === 3) return Promise.resolve([userRow]);
               return Promise.resolve([teamRow]);
             },
           }),
@@ -175,6 +188,7 @@ describe("Query.matchPicks", () => {
       } as unknown as GraphQLContext["db"],
       currentUser: null,
       responseHeaders: new Headers(),
+      ip: "127.0.0.1",
     };
 
     const result = await resolvers.Query.matchPicks(undefined, { matchId: "m1" }, ctx);
@@ -185,17 +199,42 @@ describe("Query.matchPicks", () => {
     });
   });
 
-  it("returns empty array when no picks exist for match", async () => {
+  it("throws when match is not yet locked", async () => {
+    const unlockedMatch = { id: "m1", startsAt: new Date(Date.now() + 3_600_000) };
     const ctx: GraphQLContext = {
       db: {
         select: () => ({
           from: () => ({
-            where: () => Promise.resolve([]),
+            where: () => Promise.resolve([unlockedMatch]),
           }),
         }),
       } as unknown as GraphQLContext["db"],
       currentUser: null,
       responseHeaders: new Headers(),
+      ip: "127.0.0.1",
+    };
+    await expect(resolvers.Query.matchPicks(undefined, { matchId: "m1" }, ctx)).rejects.toThrow(
+      "not available until the match is locked",
+    );
+  });
+
+  it("returns empty array when no picks exist for locked match", async () => {
+    let callCount = 0;
+    const ctx: GraphQLContext = {
+      db: {
+        select: () => ({
+          from: () => ({
+            where: () => {
+              callCount += 1;
+              if (callCount === 1) return Promise.resolve([lockedMatch]);
+              return Promise.resolve([]);
+            },
+          }),
+        }),
+      } as unknown as GraphQLContext["db"],
+      currentUser: null,
+      responseHeaders: new Headers(),
+      ip: "127.0.0.1",
     };
 
     const result = await resolvers.Query.matchPicks(undefined, { matchId: "no-match" }, ctx);
@@ -204,7 +243,7 @@ describe("Query.matchPicks", () => {
 });
 
 describe("Mutation.register re-throw", () => {
-  it("re-throws non-unique DB errors", async () => {
+  it("wraps unexpected DB errors as a generic message", async () => {
     const dbError = new Error("connection refused");
     const ctx: GraphQLContext = {
       db: {
@@ -212,9 +251,66 @@ describe("Mutation.register re-throw", () => {
       } as unknown as GraphQLContext["db"],
       currentUser: null,
       responseHeaders: new Headers(),
+      ip: "127.0.0.1",
     };
+    // Use valid credentials so validation passes and the DB error is reached
     await expect(
-      resolvers.Mutation.register(undefined, { username: "x", password: "y" }, ctx),
-    ).rejects.toThrow("connection refused");
+      resolvers.Mutation.register(
+        undefined,
+        { username: "validuser", password: "validpassword123" },
+        ctx,
+      ),
+    ).rejects.toThrow("Registration failed");
+  });
+});
+
+describe("Mutation.register validation", () => {
+  function makeErrCtx(): GraphQLContext {
+    return {
+      db: {} as unknown as GraphQLContext["db"],
+      currentUser: null,
+      responseHeaders: new Headers(),
+      ip: "127.0.0.1",
+    };
+  }
+
+  it("throws when username is too short", async () => {
+    await expect(
+      resolvers.Mutation.register(
+        undefined,
+        { username: "x", password: "validpassword123" },
+        makeErrCtx(),
+      ),
+    ).rejects.toThrow("Username must be between 2 and 32 characters");
+  });
+
+  it("throws when username is too long", async () => {
+    await expect(
+      resolvers.Mutation.register(
+        undefined,
+        { username: "a".repeat(33), password: "validpassword123" },
+        makeErrCtx(),
+      ),
+    ).rejects.toThrow("Username must be between 2 and 32 characters");
+  });
+
+  it("throws when username has invalid characters", async () => {
+    await expect(
+      resolvers.Mutation.register(
+        undefined,
+        { username: "bad user!", password: "validpassword123" },
+        makeErrCtx(),
+      ),
+    ).rejects.toThrow("Username may only contain");
+  });
+
+  it("throws when password is too short", async () => {
+    await expect(
+      resolvers.Mutation.register(
+        undefined,
+        { username: "validuser", password: "short" },
+        makeErrCtx(),
+      ),
+    ).rejects.toThrow("Password must be at least 8 characters");
   });
 });

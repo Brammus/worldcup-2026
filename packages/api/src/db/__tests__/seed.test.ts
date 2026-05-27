@@ -7,7 +7,12 @@ import { runMigrations } from "../migrate";
 import { matchResults, matches, picks, teams, users } from "../schema";
 import { seed } from "../seed";
 
-const ctx: GraphQLContext = { db, currentUser: null, responseHeaders: new Headers() };
+const ctx: GraphQLContext = {
+  db,
+  currentUser: null,
+  responseHeaders: new Headers(),
+  ip: "127.0.0.1",
+};
 
 beforeAll(async () => {
   await runMigrations();

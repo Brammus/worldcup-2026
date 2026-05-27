@@ -1,7 +1,8 @@
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, inArray } from "drizzle-orm";
 import { GraphQLError } from "graphql";
 import { buildAuthCookie, clearAuthCookie } from "../auth/cookies";
 import { signToken } from "../auth/jwt";
+import { checkLoginRateLimit } from "../auth/rateLimiter";
 import type { DB } from "../db/client";
 import { matchResults, matches, picks, teams, users } from "../db/schema";
 
@@ -15,6 +16,7 @@ export type GraphQLContext = {
   db: DB;
   currentUser: CurrentUser | null;
   responseHeaders: Headers;
+  ip: string;
 };
 
 export const resolvers = {
@@ -123,11 +125,30 @@ export const resolvers = {
     },
 
     matchPicks: async (_: unknown, { matchId }: { matchId: string }, ctx: GraphQLContext) => {
+      const [match] = await ctx.db.select().from(matches).where(eq(matches.id, matchId));
+      if (!match) throw new GraphQLError("Match not found");
+      if (match.startsAt > new Date()) {
+        throw new GraphQLError("Match picks are not available until the match is locked");
+      }
+
       const matchPickRows = await ctx.db.select().from(picks).where(eq(picks.matchId, matchId));
+      if (matchPickRows.length === 0) return [];
+
+      const userIds = [...new Set(matchPickRows.map((p) => p.userId))];
+      const teamIds = [...new Set(matchPickRows.map((p) => p.pickedTeamId))];
+
+      const [usersRows, teamsRows] = await Promise.all([
+        ctx.db.select().from(users).where(inArray(users.id, userIds)),
+        ctx.db.select().from(teams).where(inArray(teams.id, teamIds)),
+      ]);
+
+      const userMap = new Map(usersRows.map((u) => [u.id, u]));
+      const teamMap = new Map(teamsRows.map((t) => [t.id, t]));
+
       const result = [];
       for (const pick of matchPickRows) {
-        const [user] = await ctx.db.select().from(users).where(eq(users.id, pick.userId));
-        const [team] = await ctx.db.select().from(teams).where(eq(teams.id, pick.pickedTeamId));
+        const user = userMap.get(pick.userId);
+        const team = teamMap.get(pick.pickedTeamId);
         if (user && team) {
           result.push({
             user: { id: user.id, username: user.username, isAdmin: user.isAdmin },
@@ -145,12 +166,25 @@ export const resolvers = {
       { username, password }: { username: string; password: string },
       ctx: GraphQLContext,
     ) => {
+      const trimmedUsername = username.trim();
+      if (trimmedUsername.length < 2 || trimmedUsername.length > 32) {
+        throw new GraphQLError("Username must be between 2 and 32 characters");
+      }
+      if (!/^[a-zA-Z0-9_-]+$/.test(trimmedUsername)) {
+        throw new GraphQLError(
+          "Username may only contain letters, numbers, underscores, and hyphens",
+        );
+      }
+      if (password.length < 8) {
+        throw new GraphQLError("Password must be at least 8 characters");
+      }
+
       const passwordHash = await Bun.password.hash(password, { algorithm: "bcrypt", cost: 12 });
 
       try {
         const inserted = await ctx.db
           .insert(users)
-          .values({ username, passwordHash })
+          .values({ username: trimmedUsername, passwordHash })
           .returning({ id: users.id, username: users.username });
         const user = inserted[0];
         if (!user) throw new GraphQLError("Failed to create user");
@@ -159,10 +193,11 @@ export const resolvers = {
         ctx.responseHeaders.set("Set-Cookie", buildAuthCookie(token));
         return { user };
       } catch (err) {
+        if (err instanceof GraphQLError) throw err;
         if (err instanceof Error && err.message.toLowerCase().includes("unique")) {
           throw new GraphQLError("Username already taken");
         }
-        throw err;
+        throw new GraphQLError("Registration failed. Please try again.");
       }
     },
 
@@ -171,6 +206,10 @@ export const resolvers = {
       { username, password }: { username: string; password: string },
       ctx: GraphQLContext,
     ) => {
+      if (!checkLoginRateLimit(ctx.ip)) {
+        throw new GraphQLError("Too many login attempts. Please try again later.");
+      }
+
       const [user] = await ctx.db.select().from(users).where(eq(users.username, username));
 
       if (!user) throw new GraphQLError("Invalid credentials");
@@ -199,6 +238,10 @@ export const resolvers = {
       if (!match) throw new GraphQLError("Match not found");
       if (match.startsAt <= new Date()) throw new GraphQLError("Match is locked");
 
+      if (teamId !== match.homeTeamId && teamId !== match.awayTeamId) {
+        throw new GraphQLError("Team is not part of this match");
+      }
+
       const [pick] = await ctx.db
         .insert(picks)
         .values({ userId: ctx.currentUser.id, matchId, pickedTeamId: teamId })
@@ -221,6 +264,10 @@ export const resolvers = {
       ctx: GraphQLContext,
     ) => {
       if (!ctx.currentUser?.isAdmin) throw new GraphQLError("Forbidden");
+
+      if (homeScore < 0 || awayScore < 0) {
+        throw new GraphQLError("Scores must be non-negative");
+      }
 
       await ctx.db
         .insert(matchResults)

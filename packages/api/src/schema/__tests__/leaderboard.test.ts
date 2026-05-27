@@ -8,7 +8,7 @@ import { resolvers } from "../resolvers";
 // ── helpers ──────────────────────────────────────────────────────────────────
 
 function makeCtx(overrides: Partial<GraphQLContext> = {}): GraphQLContext {
-  return { db, currentUser: null, responseHeaders: new Headers(), ...overrides };
+  return { db, currentUser: null, responseHeaders: new Headers(), ip: "127.0.0.1", ...overrides };
 }
 
 const PAST = new Date(Date.now() - 60_000);

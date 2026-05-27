@@ -9,9 +9,11 @@ export function parseCookies(cookieHeader: string): Map<string, string> {
 }
 
 export function buildAuthCookie(token: string): string {
-  return `token=${token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=604800`;
+  const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
+  return `token=${token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=604800${secure}`;
 }
 
 export function clearAuthCookie(): string {
-  return "token=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0";
+  const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
+  return `token=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0${secure}`;
 }

@@ -9,7 +9,7 @@ import { resolvers } from "../resolvers";
 // ── helpers ──────────────────────────────────────────────────────────────────
 
 function makeCtx(overrides: Partial<GraphQLContext> = {}): GraphQLContext {
-  return { db, currentUser: null, responseHeaders: new Headers(), ...overrides };
+  return { db, currentUser: null, responseHeaders: new Headers(), ip: "127.0.0.1", ...overrides };
 }
 
 const PAST = new Date(Date.now() - 60_000);
@@ -133,6 +133,14 @@ describe("Mutation.setPick", () => {
     await expect(
       resolvers.Mutation.setPick(undefined, { matchId: openMatchId, teamId: homeTeamId }, ctx),
     ).rejects.toThrow("Not authenticated");
+  });
+
+  it("throws when teamId does not belong to the match", async () => {
+    const ctx = makeCtx({ currentUser: { id: userId, username: "alice", isAdmin: false } });
+    const foreignTeamId = "00000000-0000-0000-0000-000000000000";
+    await expect(
+      resolvers.Mutation.setPick(undefined, { matchId: openMatchId, teamId: foreignTeamId }, ctx),
+    ).rejects.toThrow("Team is not part of this match");
   });
 });
 

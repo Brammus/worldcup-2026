@@ -41,6 +41,27 @@ describe("buildAuthCookie", () => {
     expect(cookie).toContain("HttpOnly");
     expect(cookie).toContain("SameSite=Strict");
   });
+
+  it("includes Secure flag in production", () => {
+    const original = process.env.NODE_ENV;
+    process.env.NODE_ENV = "production";
+    try {
+      expect(buildAuthCookie("x")).toContain("; Secure");
+      expect(clearAuthCookie()).toContain("; Secure");
+    } finally {
+      process.env.NODE_ENV = original ?? "test";
+    }
+  });
+
+  it("omits Secure flag outside production", () => {
+    const original = process.env.NODE_ENV;
+    process.env.NODE_ENV = "development";
+    try {
+      expect(buildAuthCookie("x")).not.toContain("; Secure");
+    } finally {
+      process.env.NODE_ENV = original ?? "test";
+    }
+  });
 });
 
 describe("clearAuthCookie", () => {

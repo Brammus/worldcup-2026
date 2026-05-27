@@ -6,7 +6,7 @@ import { resolvers } from "../../schema/resolvers";
 import type { GraphQLContext } from "../../schema/resolvers";
 
 function makeCtx(currentUser: GraphQLContext["currentUser"] = null): GraphQLContext {
-  return { db, currentUser, responseHeaders: new Headers() };
+  return { db, currentUser, responseHeaders: new Headers(), ip: "127.0.0.1" };
 }
 
 beforeAll(async () => {
