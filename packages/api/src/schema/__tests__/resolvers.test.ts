@@ -2,7 +2,7 @@ import { describe, expect, it } from "bun:test";
 import type { GraphQLContext } from "../resolvers";
 import { resolvers } from "../resolvers";
 
-const team = { id: "abc", name: "France", group: "B", createdAt: new Date() };
+const team = { id: "abc", name: "France", groupLetter: "I" };
 
 function makeTeamsCtx(result: unknown): GraphQLContext {
   return {

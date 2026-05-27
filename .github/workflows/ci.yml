@@ -46,9 +46,9 @@ jobs:
       - name: Lint
         run: bun run lint
 
-      - name: Run DB migrations
+      - name: Run DB migrations & seed
         working-directory: packages/api
-        run: bun run db:migrate
+        run: bun run db:migrate && bun run db:seed
 
       - name: Test
         run: bun run test

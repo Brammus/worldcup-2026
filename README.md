@@ -25,10 +25,11 @@ Pick match winners across all 104 games of the 2026 FIFA World Cup and see how y
 bun install
 ```
 
-Set your database URL (defaults to `postgres://postgres:postgres@localhost:5432/worldcup2026`):
+Set your database URL:
 
 ```bash
-cp .env.example .env
+cp packages/api/.env.example packages/api/.env
+# edit packages/api/.env with your local Postgres credentials
 ```
 
 ```bash

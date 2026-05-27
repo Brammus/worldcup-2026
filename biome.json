@@ -30,6 +30,13 @@
     }
   },
   "files": {
-    "ignore": ["node_modules", "dist", "build", ".turbo", "packages/web/src/gql/**"]
+    "ignore": [
+      "node_modules",
+      "dist",
+      "build",
+      ".turbo",
+      "packages/web/src/gql/**",
+      "packages/api/src/db/migrations/**"
+    ]
   }
 }
