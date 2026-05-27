@@ -102,7 +102,11 @@ export function UserSummaryModal({ userId, username, onClose }: Props) {
             {ALL_GROUPS.map((letter) => (
               <div key={letter} className="group-card">
                 <div className="group-label">Group {letter}</div>
-                <div className="group-pick">{predictions.get(letter) ?? "–"}</div>
+                {predictions.get(letter) === "–" ? (
+                  <div className="group-pick group-pick-empty">–</div>
+                ) : (
+                  <div className="group-pick">{predictions.get(letter)}</div>
+                )}
               </div>
             ))}
           </div>
