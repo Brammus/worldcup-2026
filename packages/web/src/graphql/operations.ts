@@ -76,3 +76,34 @@ export const SetPickMutation = `
     }
   }
 `;
+
+export const LeaderboardQuery = `
+  query Leaderboard {
+    leaderboard {
+      rank
+      user { id username }
+      totalPoints
+      correctPicks
+      totalPicks
+    }
+  }
+`;
+
+export const UserPicksQuery = `
+  query UserPicks($userId: ID!) {
+    userPicks(userId: $userId) {
+      id
+      matchId
+      pickedTeamId
+      points
+      match {
+        id
+        round
+        homeTeamLabel
+        awayTeamLabel
+        result { homeScore awayScore winnerTeamId }
+      }
+      pickedTeam { id name group }
+    }
+  }
+`;

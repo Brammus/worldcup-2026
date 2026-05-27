@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery } from "urql";
+import { Link } from "wouter";
 import { MatchCard } from "../components/MatchCard";
 import { MatchesQuery, SetPickMutation } from "../graphql/operations";
 
@@ -54,6 +55,7 @@ export function HomePage() {
     <div className="home-page">
       <header className="home-header">
         <h1>World Cup 2026</h1>
+        <Link href="/scoreboard">Scoreboard</Link>
       </header>
 
       <nav className="round-tabs">

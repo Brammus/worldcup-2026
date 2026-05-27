@@ -5,6 +5,16 @@ export const typeDefs = /* GraphQL */ `
     team(id: ID!): Team
     matches(round: String, group: String): [Match!]!
     myPicks: [Pick!]!
+    leaderboard: [LeaderboardEntry!]!
+    userPicks(userId: ID!): [Pick!]!
+  }
+
+  type LeaderboardEntry {
+    rank: Int!
+    user: User!
+    totalPoints: Int!
+    correctPicks: Int!
+    totalPicks: Int!
   }
 
   type Mutation {
