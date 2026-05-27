@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "urql";
+import { Link } from "wouter";
 import { MatchPicksQuery } from "../graphql/operations";
 
 type Team = { id: string; name: string; group: string } | null;
@@ -133,6 +134,9 @@ export function MatchCard({ match, onPick, onUsernameClick }: Props) {
                   {mp.user.username}
                 </button>
                 <span className="pick-team-badge">{mp.pickedTeam.name}</span>
+                <Link href={`/user/${mp.user.id}`} className="pick-profile-link">
+                  ↗
+                </Link>
               </div>
             ))
           )}
