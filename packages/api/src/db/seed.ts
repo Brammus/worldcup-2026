@@ -964,6 +964,7 @@ export async function seed(db: DB) {
   await db.insert(matches).values([...groupMatchValues, ...knockoutMatchValues]);
 }
 
+/* c8 ignore next 5 */
 if (import.meta.main) {
   const { db } = await import("./client");
   await seed(db);

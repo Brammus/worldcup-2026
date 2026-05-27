@@ -36,6 +36,9 @@ bun test
 # or per-package
 bun run --filter '*' test
 
+# Watch mode (re-runs on file changes)
+bun run test:watch
+
 # Coverage report (per-file line/function %)
 bun run coverage
 

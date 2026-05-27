@@ -41,11 +41,12 @@ bun run dev        # api → :4000  /  web → :3000
 ## Commands
 
 ```bash
-bun test           # run all tests
-bun run coverage   # tests + coverage report (line/function %)
-bun run typecheck  # typecheck all packages
-bun run lint       # lint with Biome
-bun run lint:fix   # auto-fix lint issues
+bun test             # run all tests
+bun run test:watch   # watch mode — re-runs on file changes
+bun run coverage     # tests + coverage report (line/function %)
+bun run typecheck    # typecheck all packages
+bun run lint         # lint with Biome
+bun run lint:fix     # auto-fix lint issues
 ```
 
 Coverage is reported per-file in the terminal. In CI, the summary is posted to the GitHub Actions job summary tab on every run.

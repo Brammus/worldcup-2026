@@ -12,6 +12,7 @@ export async function runMigrations() {
   await sql.end();
 }
 
+/* c8 ignore next 3 */
 if (import.meta.main) {
   await runMigrations();
   console.log("Migrations applied");
