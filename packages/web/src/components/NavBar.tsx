@@ -6,14 +6,31 @@ type Props = {
 
 export function NavBar({ currentUser }: Props) {
   return (
-    <div className="navbar">
-      <span className="navbar-brand">⚽ World Cup 2026</span>
-      <nav className="navbar-links">
-        <Link href="/">🏠 Home</Link>
-        <Link href="/scoreboard">🏆 Scoreboard</Link>
-        {currentUser?.isAdmin && <Link href="/admin">🛠 Admin</Link>}
-        {currentUser && <span className="navbar-user">👤 {currentUser.username}</span>}
-      </nav>
-    </div>
+    <header className="navbar">
+      <div className="navbar-inner">
+        <Link href="/" className="navbar-brand">
+          ⚽ <span>World Cup 2026</span>
+        </Link>
+        <nav className="navbar-links">
+          <Link href="/" className="navbar-link">
+            Home
+          </Link>
+          <Link href="/scoreboard" className="navbar-link">
+            🏆 Scoreboard
+          </Link>
+          {currentUser?.isAdmin && (
+            <Link href="/admin" className="navbar-link">
+              🛠 Admin
+            </Link>
+          )}
+          {currentUser && (
+            <span className="navbar-user">
+              <span className="navbar-avatar">{currentUser.username[0]?.toUpperCase()}</span>
+              {currentUser.username}
+            </span>
+          )}
+        </nav>
+      </div>
+    </header>
   );
 }

@@ -91,37 +91,35 @@ export function MatchCard({ match, onPick, onUsernameClick }: Props) {
       )}
       <button
         type="button"
-        className="toggle-picks-btn"
+        className={`toggle-picks-btn${expanded ? " expanded" : ""}`}
         onClick={() => setExpanded((prev) => !prev)}
       >
-        {expanded ? "👥 Hide picks ▲" : "👥 See picks ▼"}
+        <span className="toggle-picks-label">👥 Picks</span>
+        <span className="toggle-picks-chevron">▾</span>
       </button>
-      {expanded && (
-        <div className="match-picks-list">
+      <div className={`match-picks-list${expanded ? " expanded" : ""}`}>
+        <div className="match-picks-inner">
           {picksResult.fetching ? (
-            <div className="loading">Loading…</div>
+            <div className="picks-loading">Loading…</div>
+          ) : (picksResult.data?.matchPicks ?? []).length === 0 ? (
+            <div className="no-picks">No picks yet</div>
           ) : (
-            <>
-              {(picksResult.data?.matchPicks ?? []).length === 0 ? (
-                <div className="no-picks">No picks yet</div>
-              ) : (
-                (picksResult.data?.matchPicks ?? []).map((mp) => (
-                  <div key={mp.user.id} className="match-pick-row">
-                    <button
-                      type="button"
-                      className="username-link"
-                      onClick={() => onUsernameClick?.(mp.user.id, mp.user.username)}
-                    >
-                      {mp.user.username}
-                    </button>
-                    : {mp.pickedTeam.name}
-                  </div>
-                ))
-              )}
-            </>
+            (picksResult.data?.matchPicks ?? []).map((mp) => (
+              <div key={mp.user.id} className="match-pick-row">
+                <span className="pick-avatar">{mp.user.username[0]?.toUpperCase()}</span>
+                <button
+                  type="button"
+                  className="username-link"
+                  onClick={() => onUsernameClick?.(mp.user.id, mp.user.username)}
+                >
+                  {mp.user.username}
+                </button>
+                <span className="pick-team-badge">{mp.pickedTeam.name}</span>
+              </div>
+            ))
           )}
         </div>
-      )}
+      </div>
     </div>
   );
 }

@@ -63,7 +63,6 @@ export function HomePage() {
   return (
     <div className="home-page">
       <NavBar currentUser={me} />
-      <h1>⚽ World Cup 2026</h1>
 
       <nav className="round-tabs">
         {ROUNDS.map((r) => (

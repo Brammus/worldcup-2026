@@ -166,6 +166,7 @@ a:hover {
   max-width: 860px;
   margin: 0 auto;
   padding: 24px 16px;
+  padding-top: 80px;
 }
 
 .home-header {
@@ -276,4 +277,228 @@ a:hover {
   text-align: center;
   color: var(--color-text-muted);
   padding: 48px 0;
+}
+
+/* ── Navbar ───────────────────────────────────────────────────── */
+
+.navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  background: #0f172a;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.25);
+}
+
+.navbar-inner {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 0 20px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.navbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: white;
+  text-decoration: none;
+  letter-spacing: -0.01em;
+}
+
+.navbar-brand:hover {
+  text-decoration: none;
+  color: white;
+}
+
+.navbar-brand span {
+  background: linear-gradient(90deg, #60a5fa, #a78bfa);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.navbar-links {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.navbar-link {
+  color: rgba(255, 255, 255, 0.65);
+  text-decoration: none;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: background 0.15s, color 0.15s;
+}
+
+.navbar-link:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: white;
+  text-decoration: none;
+}
+
+.navbar-user {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 0.875rem;
+  padding: 6px 10px 6px 14px;
+  margin-left: 6px;
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.navbar-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* ── Page top padding (accounts for fixed navbar) ────────────── */
+
+.home-page,
+.scoreboard-page,
+.user-picks-page,
+.admin-page {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 24px 16px;
+  padding-top: 80px;
+}
+
+/* ── Toggle picks button ──────────────────────────────────────── */
+
+.toggle-picks-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 8px 0 0;
+  margin-top: 14px;
+  border: none;
+  border-top: 1px solid var(--color-border);
+  background: none;
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+
+.toggle-picks-btn:hover {
+  color: var(--color-primary);
+}
+
+.toggle-picks-chevron {
+  display: inline-block;
+  font-size: 1rem;
+  line-height: 1;
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.toggle-picks-btn.expanded .toggle-picks-chevron {
+  transform: rotate(180deg);
+}
+
+/* ── Picks panel (animated) ───────────────────────────────────── */
+
+.match-picks-list {
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease;
+}
+
+.match-picks-list.expanded {
+  max-height: 600px;
+  opacity: 1;
+}
+
+.match-picks-inner {
+  padding-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.match-pick-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  transition: background 0.12s;
+}
+
+.match-pick-row:hover {
+  background: var(--color-bg);
+}
+
+.pick-avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  color: white;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.username-link {
+  background: none;
+  border: none;
+  color: var(--color-primary);
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  padding: 0;
+  transition: color 0.12s;
+}
+
+.username-link:hover {
+  color: var(--color-primary-hover);
+  text-decoration: underline;
+}
+
+.pick-team-badge {
+  margin-left: auto;
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+  border-radius: 20px;
+  padding: 2px 10px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+.picks-loading,
+.no-picks {
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+  padding: 10px;
+  text-align: center;
 }

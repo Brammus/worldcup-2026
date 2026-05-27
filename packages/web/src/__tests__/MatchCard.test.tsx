@@ -98,7 +98,7 @@ describe("MatchCard", () => {
     const { container } = render(createElement(MatchCard, { match: baseMatch, onPick: mock() }));
     const toggleBtn = container.querySelector(".toggle-picks-btn");
     expect(toggleBtn).not.toBeNull();
-    expect(toggleBtn?.textContent).toContain("See picks");
+    expect(toggleBtn?.textContent).toContain("Picks");
   });
 
   it("shows picks section when expanded", async () => {
