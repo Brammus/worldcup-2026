@@ -140,20 +140,20 @@ describe("Query.leaderboard", () => {
     const entries = await resolvers.Query.leaderboard(undefined, undefined, ctx);
 
     expect(entries.length).toBe(3);
-    expect(entries[0]!.user.username).toBe("alice");
-    expect(entries[0]!.totalPoints).toBe(5);
+    expect(entries[0]?.user.username).toBe("alice");
+    expect(entries[0]?.totalPoints).toBe(5);
     // bob and charlie both 0pts, sorted by username asc → bob before charlie
-    expect(entries[1]!.user.username).toBe("bob");
-    expect(entries[2]!.user.username).toBe("charlie");
+    expect(entries[1]?.user.username).toBe("bob");
+    expect(entries[2]?.user.username).toBe("charlie");
   });
 
   it("uses dense ranking — tied users get same rank", async () => {
     const ctx = makeCtx();
     const entries = await resolvers.Query.leaderboard(undefined, undefined, ctx);
 
-    expect(entries[0]!.rank).toBe(1); // alice
-    expect(entries[1]!.rank).toBe(2); // bob — tied with charlie at 0pts
-    expect(entries[2]!.rank).toBe(2); // charlie — same rank as bob
+    expect(entries[0]?.rank).toBe(1); // alice
+    expect(entries[1]?.rank).toBe(2); // bob — tied with charlie at 0pts
+    expect(entries[2]?.rank).toBe(2); // charlie — same rank as bob
   });
 
   it("returns correct correctPicks per user", async () => {
@@ -195,7 +195,7 @@ describe("Query.userPicks", () => {
     const ctx = makeCtx({ currentUser: null });
     const result = await resolvers.Query.userPicks(undefined, { userId: bobId }, ctx);
     expect(result.length).toBe(1);
-    expect(result[0]!.userId).toBe(bobId);
+    expect(result[0]?.userId).toBe(bobId);
   });
 
   it("returns empty array for user with no picks", async () => {
