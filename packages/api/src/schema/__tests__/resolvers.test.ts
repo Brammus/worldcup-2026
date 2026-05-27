@@ -9,6 +9,8 @@ function makeTeamsCtx(result: unknown): GraphQLContext {
     db: {
       select: () => ({ from: () => Promise.resolve(result) }),
     } as unknown as GraphQLContext["db"],
+    currentUser: null,
+    responseHeaders: new Headers(),
   };
 }
 
@@ -17,6 +19,8 @@ function makeTeamCtx(result: unknown): GraphQLContext {
     db: {
       select: () => ({ from: () => ({ where: () => Promise.resolve(result) }) }),
     } as unknown as GraphQLContext["db"],
+    currentUser: null,
+    responseHeaders: new Headers(),
   };
 }
 

@@ -3,8 +3,13 @@ import { App } from "../App";
 import { render } from "./test-utils";
 
 describe("App", () => {
-  it("renders heading", () => {
-    const { container } = render(<App />);
-    expect(container.querySelector("h1")?.textContent).toBe("World Cup 2026");
+  it("renders the login page at /login", () => {
+    const { container } = render(<App initialPath="/login" />);
+    expect(container.querySelector("h1")?.textContent).toBe("Sign in");
+  });
+
+  it("renders the register page at /register", () => {
+    const { container } = render(<App initialPath="/register" />);
+    expect(container.querySelector("h1")?.textContent).toBe("Create account");
   });
 });

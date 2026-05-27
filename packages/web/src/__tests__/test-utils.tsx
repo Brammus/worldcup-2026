@@ -1,6 +1,7 @@
 import { createElement } from "react";
 import type { ReactElement } from "react";
-import { renderToString } from "react-dom/server";
+import { flushSync } from "react-dom";
+import { createRoot } from "react-dom/client";
 import { Provider, cacheExchange, createClient, fetchExchange } from "urql";
 
 // Set up happy-dom globals when running outside of the web package's bunfig.toml context
@@ -32,8 +33,10 @@ function Wrapper({ children }: { children: ReactElement }) {
 }
 
 export function render(ui: ReactElement) {
-  const html = renderToString(createElement(Wrapper, null, ui));
   const container = document.createElement("div");
-  container.innerHTML = html;
+  document.body.appendChild(container);
+  flushSync(() => {
+    createRoot(container).render(createElement(Wrapper, null, ui));
+  });
   return { container };
 }

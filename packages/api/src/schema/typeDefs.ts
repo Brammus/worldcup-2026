@@ -1,8 +1,24 @@
 export const typeDefs = /* GraphQL */ `
   type Query {
+    me: User
     teams: [Team!]!
     team(id: ID!): Team
     matches(round: String, group: String): [Match!]!
+  }
+
+  type Mutation {
+    register(username: String!, password: String!): AuthResult!
+    login(username: String!, password: String!): AuthResult!
+    logout: Boolean!
+  }
+
+  type AuthResult {
+    user: User!
+  }
+
+  type User {
+    id: ID!
+    username: String!
   }
 
   type Team {
