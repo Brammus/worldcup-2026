@@ -112,7 +112,7 @@ describe("UserPicksPage", () => {
       Me: { me: null },
     });
 
-    const summary = container.querySelector(".summary");
+    const summary = container.querySelector(".picks-stats");
     expect(summary).not.toBeNull();
     // 1 correct, 3 picks, 2 points
     expect(summary?.textContent).toContain("1");

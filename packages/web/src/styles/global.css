@@ -754,3 +754,115 @@ a:hover {
   color: var(--color-text-muted);
   font-weight: 400;
 }
+
+/* ── User picks page ──────────────────────────────────────────── */
+
+.picks-page-header {
+  margin-bottom: 28px;
+}
+
+.picks-page-header h1 {
+  font-size: 1.75rem;
+  font-weight: 800;
+  margin-bottom: 10px;
+}
+
+.picks-stats {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.picks-stat {
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+}
+
+.picks-stat strong {
+  color: var(--color-text);
+  font-weight: 700;
+}
+
+.picks-stat-divider {
+  width: 1px;
+  height: 14px;
+  background: var(--color-border);
+}
+
+.round-section {
+  margin-bottom: 28px;
+}
+
+.round-heading {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-text-muted);
+  margin-bottom: 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.picks-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pick-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 0.875rem;
+}
+
+.pick-match-label {
+  flex: 1;
+  color: var(--color-text-muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.pick-vs {
+  font-size: 0.75rem;
+  color: var(--color-border);
+  flex-shrink: 0;
+}
+
+.pick-chosen {
+  font-weight: 600;
+  color: var(--color-text);
+  flex-shrink: 0;
+}
+
+.pending {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.correct {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-success);
+  flex-shrink: 0;
+}
+
+.wrong {
+  font-size: 0.8125rem;
+  flex-shrink: 0;
+}
+
+.picks-empty {
+  color: var(--color-text-muted);
+  text-align: center;
+  padding: 48px 0;
+  font-size: 0.9375rem;
+}

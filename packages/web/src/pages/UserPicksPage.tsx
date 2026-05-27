@@ -34,6 +34,18 @@ function PickOutcome({ pick }: { pick: Pick }) {
   return <span className="wrong">❌</span>;
 }
 
+const ROUND_LABELS: Record<string, string> = {
+  group: "Group Stage",
+  r32: "Round of 32",
+  r16: "Round of 16",
+  qf: "Quarterfinals",
+  sf: "Semifinals",
+  final: "Final",
+  third_place: "Third Place",
+};
+
+const ROUND_ORDER = ["group", "r32", "r16", "qf", "sf", "final", "third_place"];
+
 export function UserPicksPage() {
   const { userId } = useParams<{ userId: string }>();
 
@@ -51,15 +63,16 @@ export function UserPicksPage() {
   const totalPoints = userPicks.reduce((sum, p) => sum + (p.points ?? 0), 0);
   const correctPicks = userPicks.filter((p) => p.points != null && p.points > 0).length;
   const totalPicks = userPicks.length;
+  const isMe = me?.id === userId;
 
-  // Group picks by round
+  // Group picks by round, preserving order
   const byRound = new Map<string, Pick[]>();
   for (const pick of userPicks) {
     const round = pick.match.round;
-    const bucket = byRound.get(round) ?? [];
-    if (!byRound.has(round)) byRound.set(round, bucket);
-    bucket.push(pick);
+    if (!byRound.has(round)) byRound.set(round, []);
+    (byRound.get(round) as Pick[]).push(pick);
   }
+  const sortedRounds = ROUND_ORDER.filter((r) => byRound.has(r));
 
   if (result.fetching && userPicks.length === 0) {
     return <div className="loading">Loading…</div>;
@@ -68,26 +81,44 @@ export function UserPicksPage() {
   return (
     <div className="user-picks-page">
       <NavBar currentUser={me} />
-      <h1>🎯 Picks</h1>
-      <div className="summary">
-        {correctPicks} correct / {totalPicks} picks / {totalPoints} points
-      </div>
-      {Array.from(byRound.entries()).map(([round, roundPicks]) => (
-        <div key={round} className="round-section">
-          <h2>{round}</h2>
-          <ul>
-            {roundPicks.map((pick) => (
-              <li key={pick.id}>
-                <span className="match-label">
-                  {pick.match.homeTeamLabel} vs {pick.match.awayTeamLabel}
-                </span>
-                <span className="picked-team">{pick.pickedTeam.name}</span>
-                <PickOutcome pick={pick} />
-              </li>
-            ))}
-          </ul>
+      <div className="picks-page-header">
+        <h1>{isMe ? "🎯 Your picks" : "🎯 Picks"}</h1>
+        <div className="picks-stats">
+          <span className="picks-stat">
+            <strong>{totalPoints}</strong> pts
+          </span>
+          <span className="picks-stat-divider" />
+          <span className="picks-stat">
+            <strong>{correctPicks}</strong> correct
+          </span>
+          <span className="picks-stat-divider" />
+          <span className="picks-stat">
+            <strong>{totalPicks}</strong> total
+          </span>
         </div>
-      ))}
+      </div>
+      {sortedRounds.length === 0 ? (
+        <div className="picks-empty">No picks yet.</div>
+      ) : (
+        sortedRounds.map((round) => (
+          <div key={round} className="round-section">
+            <h2 className="round-heading">{ROUND_LABELS[round] ?? round}</h2>
+            <div className="picks-list">
+              {(byRound.get(round) as Pick[]).map((pick) => (
+                <div key={pick.id} className="pick-row">
+                  <span className="pick-match-label">
+                    {pick.match.homeTeamLabel}
+                    <span className="pick-vs">vs</span>
+                    {pick.match.awayTeamLabel}
+                  </span>
+                  <span className="pick-chosen">{pick.pickedTeam.name}</span>
+                  <PickOutcome pick={pick} />
+                </div>
+              ))}
+            </div>
+          </div>
+        ))
+      )}
     </div>
   );
 }
