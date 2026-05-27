@@ -221,6 +221,9 @@ a:hover {
 }
 
 .match-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   font-size: 0.8125rem;
   color: var(--color-text-muted);
   margin-bottom: 10px;
@@ -384,48 +387,33 @@ a:hover {
   padding-top: 80px;
 }
 
-/* ── Match card footer ────────────────────────────────────────── */
-
-.match-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-top: 12px;
-}
-
 /* ── Toggle picks button ──────────────────────────────────────── */
 
 .toggle-picks-btn {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 4px 10px 4px 12px;
-  border: 1px solid var(--color-border);
-  border-radius: 20px;
-  background: var(--color-bg);
+  gap: 4px;
+  padding: 0;
+  border: none;
+  background: none;
   color: var(--color-text-muted);
-  font-size: 0.78rem;
+  font-size: 0.8125rem;
   font-weight: 500;
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s, color 0.15s;
-  letter-spacing: 0.01em;
+  transition: color 0.15s;
 }
 
 .toggle-picks-btn:hover {
-  background: #e8edf5;
-  border-color: #c8d3e6;
   color: var(--color-text);
 }
 
 .toggle-picks-btn.expanded {
-  background: #eff6ff;
-  border-color: #bfdbfe;
   color: var(--color-primary);
 }
 
 .chevron-icon {
-  width: 12px;
-  height: 12px;
+  width: 11px;
+  height: 11px;
   flex-shrink: 0;
   transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }

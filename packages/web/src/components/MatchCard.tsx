@@ -73,32 +73,14 @@ export function MatchCard({ match, onPick, onUsernameClick }: Props) {
 
   return (
     <div className="match-card">
-      <div className="match-meta">{kickoff}</div>
-      <div className="match-teams">
-        {pickBtn(match.homeTeamLabel, homeId)}
-        {result ? (
-          <span className="score">
-            {result.homeScore} – {result.awayScore}
-          </span>
-        ) : (
-          <span className="vs">vs</span>
-        )}
-        {pickBtn(match.awayTeamLabel, awayId)}
-      </div>
-      <div className="match-footer">
-        {result && pickedId ? (
-          <span className="pick-result">
-            {points !== null && points > 0 ? `✅ +${points}` : "❌"}
-          </span>
-        ) : (
-          <span />
-        )}
+      <div className="match-meta">
+        <span>{kickoff}</span>
         <button
           type="button"
           className={`toggle-picks-btn${expanded ? " expanded" : ""}`}
           onClick={() => setExpanded((prev) => !prev)}
         >
-          <span>Picks</span>
+          Picks
           <svg
             className="chevron-icon"
             viewBox="0 0 12 12"
@@ -116,6 +98,22 @@ export function MatchCard({ match, onPick, onUsernameClick }: Props) {
           </svg>
         </button>
       </div>
+      <div className="match-teams">
+        {pickBtn(match.homeTeamLabel, homeId)}
+        {result ? (
+          <span className="score">
+            {result.homeScore} – {result.awayScore}
+          </span>
+        ) : (
+          <span className="vs">vs</span>
+        )}
+        {pickBtn(match.awayTeamLabel, awayId)}
+      </div>
+      {result && pickedId && (
+        <span className="pick-result">
+          {points !== null && points > 0 ? `✅ +${points}` : "❌"}
+        </span>
+      )}
       <div className={`match-picks-list${expanded ? " expanded" : ""}`}>
         <div className="match-picks-inner">
           {picksResult.fetching ? (
