@@ -105,6 +105,7 @@ export function HomePage() {
               key={match.id}
               match={match}
               onPick={handlePick}
+              currentUser={me}
               onUsernameClick={(userId, username) => setSummaryUser({ userId, username })}
             />
           ))}

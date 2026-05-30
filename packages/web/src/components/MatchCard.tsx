@@ -24,6 +24,7 @@ type Props = {
   match: Match;
   onPick: (matchId: string, teamId: string | null) => void;
   onUsernameClick?: (userId: string, username: string) => void;
+  currentUser?: { id: string; username: string } | null;
 };
 
 type MatchPickRow = {
@@ -31,7 +32,7 @@ type MatchPickRow = {
   pickedTeam: { id: string; name: string; group: string } | null;
 };
 
-export function MatchCard({ match, onPick, onUsernameClick }: Props) {
+export function MatchCard({ match, onPick, onUsernameClick, currentUser }: Props) {
   const [expanded, setExpanded] = useState(false);
 
   const homeId = match.homeTeam?.id ?? null;
@@ -121,7 +122,32 @@ export function MatchCard({ match, onPick, onUsernameClick }: Props) {
       )}
       <div className={`match-picks-list${expanded ? " expanded" : ""}`}>
         <div className="match-picks-inner">
-          {picksResult.fetching ? (
+          {!match.isLocked ? (
+            hasPick && currentUser ? (
+              <div className="match-pick-row">
+                <span className="pick-avatar">{currentUser.username[0]?.toUpperCase()}</span>
+                <button
+                  type="button"
+                  className="username-link"
+                  onClick={() => onUsernameClick?.(currentUser.id, currentUser.username)}
+                >
+                  {currentUser.username}
+                </button>
+                <span className="pick-team-badge">
+                  {pickedId === homeId
+                    ? (match.homeTeam?.name ?? match.homeTeamLabel)
+                    : pickedId === awayId
+                      ? (match.awayTeam?.name ?? match.awayTeamLabel)
+                      : "Draw"}
+                </span>
+                <Link href={`/user/${currentUser.id}`} className="pick-profile-link">
+                  ↗
+                </Link>
+              </div>
+            ) : (
+              <div className="no-picks">No picks yet</div>
+            )
+          ) : picksResult.fetching ? (
             <div className="picks-loading">Loading…</div>
           ) : (picksResult.data?.matchPicks ?? []).length === 0 ? (
             <div className="no-picks">No picks yet</div>
