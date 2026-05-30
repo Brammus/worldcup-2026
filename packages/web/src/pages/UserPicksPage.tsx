@@ -18,10 +18,10 @@ type PickMatch = {
 type Pick = {
   id: string;
   matchId: string;
-  pickedTeamId: string;
+  pickedTeamId: string | null;
   points: number | null;
   match: PickMatch;
-  pickedTeam: { id: string; name: string; group: string };
+  pickedTeam: { id: string; name: string; group: string } | null;
 };
 
 function PickOutcome({ pick }: { pick: Pick }) {
@@ -111,7 +111,7 @@ export function UserPicksPage() {
                     <span className="pick-vs">vs</span>
                     {pick.match.awayTeamLabel}
                   </span>
-                  <span className="pick-chosen">{pick.pickedTeam.name}</span>
+                  <span className="pick-chosen">{pick.pickedTeam?.name ?? "Draw"}</span>
                   <PickOutcome pick={pick} />
                 </div>
               ))}

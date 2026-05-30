@@ -276,6 +276,25 @@ a:hover {
   cursor: not-allowed;
 }
 
+.pick-btn-draw {
+  flex: 0 0 auto;
+  min-width: 64px;
+  padding: 10px 10px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  border-style: dashed;
+  color: var(--color-text-muted);
+}
+
+.pick-btn-draw:hover:not(:disabled) {
+  color: var(--color-primary);
+}
+
+.pick-btn-draw.picked {
+  border-style: solid;
+  color: white;
+}
+
 .loading {
   text-align: center;
   color: var(--color-text-muted);

@@ -37,9 +37,7 @@ export const picks = pgTable(
     matchId: uuid("match_id")
       .notNull()
       .references(() => matches.id),
-    pickedTeamId: uuid("picked_team_id")
-      .notNull()
-      .references(() => teams.id),
+    pickedTeamId: uuid("picked_team_id").references(() => teams.id), // null = draw pick
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [unique("picks_user_match_unique").on(t.userId, t.matchId)],

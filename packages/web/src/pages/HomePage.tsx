@@ -27,7 +27,7 @@ type MatchData = {
   awayTeam: { id: string; name: string; group: string } | null;
   startsAt: string;
   isLocked: boolean;
-  myPick: { pickedTeamId: string } | null;
+  myPick: { pickedTeamId: string | null } | null;
 };
 
 type MeData = {
@@ -56,7 +56,7 @@ export function HomePage() {
 
   const [, setPick] = useMutation(SetPickMutation);
 
-  async function handlePick(matchId: string, teamId: string) {
+  async function handlePick(matchId: string, teamId: string | null) {
     await setPick({ matchId, teamId });
     reexecute({ requestPolicy: "network-only" });
   }

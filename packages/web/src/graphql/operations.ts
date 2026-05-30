@@ -68,7 +68,7 @@ export const SetResultMutation = `
 `;
 
 export const SetPickMutation = `
-  mutation SetPick($matchId: ID!, $teamId: ID!) {
+  mutation SetPick($matchId: ID!, $teamId: ID) {
     setPick(matchId: $matchId, teamId: $teamId) {
       id
       matchId

@@ -14,3 +14,6 @@ packages/web/src/gql/
 
 # Vite
 packages/web/.vite
+
+# TypeScript incremental build cache
+*.tsbuildinfo

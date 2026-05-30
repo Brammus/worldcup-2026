@@ -21,6 +21,7 @@ let homeTeamId: string;
 let awayTeamId: string;
 let openMatchId: string;
 let lockedMatchId: string;
+let knockoutMatchId: string;
 let userId: string;
 let otherUserId: string;
 
@@ -77,6 +78,20 @@ beforeAll(async () => {
     })
     .returning({ id: matches.id });
   lockedMatchId = locked?.id ?? "";
+
+  const [knockout] = await db
+    .insert(matches)
+    .values({
+      round: "r16",
+      homeTeamId,
+      awayTeamId,
+      homeTeamLabel: "France",
+      awayTeamLabel: "Germany",
+      venue: "MetLife Stadium",
+      startsAt: FUTURE,
+    })
+    .returning({ id: matches.id });
+  knockoutMatchId = knockout?.id ?? "";
 
   // users
   const [u1] = await db
@@ -142,6 +157,39 @@ describe("Mutation.setPick", () => {
       resolvers.Mutation.setPick(undefined, { matchId: openMatchId, teamId: foreignTeamId }, ctx),
     ).rejects.toThrow("Team is not part of this match");
   });
+
+  it("stores a draw pick (null teamId) for a group stage match", async () => {
+    const ctx = makeCtx({ currentUser: { id: userId, username: "alice", isAdmin: false } });
+    const result = await resolvers.Mutation.setPick(
+      undefined,
+      { matchId: openMatchId, teamId: null },
+      ctx,
+    );
+    expect(result?.pickedTeamId).toBeNull();
+    expect(result?.matchId).toBe(openMatchId);
+  });
+
+  it("upserts draw pick — replaces a previous team pick with draw", async () => {
+    const ctx = makeCtx({ currentUser: { id: userId, username: "alice", isAdmin: false } });
+    await resolvers.Mutation.setPick(undefined, { matchId: openMatchId, teamId: homeTeamId }, ctx);
+    const result = await resolvers.Mutation.setPick(
+      undefined,
+      { matchId: openMatchId, teamId: null },
+      ctx,
+    );
+    expect(result?.pickedTeamId).toBeNull();
+
+    const allPicks = await db.select().from(picks).where(eq(picks.matchId, openMatchId));
+    const userPicks = allPicks.filter((p) => p.userId === userId);
+    expect(userPicks.length).toBe(1);
+  });
+
+  it("throws when picking draw on a knockout match", async () => {
+    const ctx = makeCtx({ currentUser: { id: userId, username: "alice", isAdmin: false } });
+    await expect(
+      resolvers.Mutation.setPick(undefined, { matchId: knockoutMatchId, teamId: null }, ctx),
+    ).rejects.toThrow("Draw picks are only allowed in group stage matches");
+  });
 });
 
 // ── Query.myPicks ─────────────────────────────────────────────────────────────
@@ -204,5 +252,68 @@ describe("Match.myPick", () => {
       makeCtx({ currentUser: null }),
     );
     expect(result).toBeNull();
+  });
+});
+
+// ── Pick.points with draw picks ───────────────────────────────────────────────
+
+describe("Pick.points — draw picks", () => {
+  it("awards 2 points when a draw pick matches a draw result", async () => {
+    const ctx = makeCtx({ currentUser: { id: userId, username: "alice", isAdmin: false } });
+
+    // Record a draw result on the open match
+    await db
+      .insert(matchResults)
+      .values({ matchId: openMatchId, winnerTeamId: null, homeScore: 1, awayScore: 1 })
+      .onConflictDoUpdate({
+        target: [matchResults.matchId],
+        set: { winnerTeamId: null, homeScore: 1, awayScore: 1 },
+      });
+
+    // Store a draw pick
+    await resolvers.Mutation.setPick(undefined, { matchId: openMatchId, teamId: null }, ctx);
+
+    const points = await resolvers.Pick.points(
+      { matchId: openMatchId, pickedTeamId: null },
+      undefined,
+      makeCtx(),
+    );
+    expect(points).toBe(2);
+  });
+
+  it("awards 0 points when a draw pick does not match a winning result", async () => {
+    // Result has a winner (not a draw)
+    await db
+      .insert(matchResults)
+      .values({ matchId: openMatchId, winnerTeamId: homeTeamId, homeScore: 2, awayScore: 0 })
+      .onConflictDoUpdate({
+        target: [matchResults.matchId],
+        set: { winnerTeamId: homeTeamId, homeScore: 2, awayScore: 0 },
+      });
+
+    const points = await resolvers.Pick.points(
+      { matchId: openMatchId, pickedTeamId: null },
+      undefined,
+      makeCtx(),
+    );
+    expect(points).toBe(0);
+  });
+
+  it("awards 0 points when a team pick does not match a draw result", async () => {
+    // Result is a draw
+    await db
+      .insert(matchResults)
+      .values({ matchId: openMatchId, winnerTeamId: null, homeScore: 0, awayScore: 0 })
+      .onConflictDoUpdate({
+        target: [matchResults.matchId],
+        set: { winnerTeamId: null, homeScore: 0, awayScore: 0 },
+      });
+
+    const points = await resolvers.Pick.points(
+      { matchId: openMatchId, pickedTeamId: homeTeamId },
+      undefined,
+      makeCtx(),
+    );
+    expect(points).toBe(0);
   });
 });

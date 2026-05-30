@@ -1,0 +1,1 @@
+ALTER TABLE "picks" ALTER COLUMN "picked_team_id" DROP NOT NULL;

@@ -12,7 +12,7 @@ export const typeDefs = /* GraphQL */ `
 
   type MatchPick {
     user: User!
-    pickedTeam: Team!
+    pickedTeam: Team
   }
 
   type LeaderboardEntry {
@@ -27,7 +27,7 @@ export const typeDefs = /* GraphQL */ `
     register(username: String!, password: String!): AuthResult!
     login(username: String!, password: String!): AuthResult!
     logout: Boolean!
-    setPick(matchId: ID!, teamId: ID!): Pick!
+    setPick(matchId: ID!, teamId: ID): Pick!
     setResult(matchId: ID!, winnerId: ID, homeScore: Int!, awayScore: Int!): Match!
   }
 
@@ -66,9 +66,9 @@ export const typeDefs = /* GraphQL */ `
   type Pick {
     id: ID!
     matchId: ID!
-    pickedTeamId: ID!
+    pickedTeamId: ID
     match: Match!
-    pickedTeam: Team!
+    pickedTeam: Team
     points: Int
   }
 

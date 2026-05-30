@@ -4,7 +4,7 @@ import { Link } from "wouter";
 import { MatchPicksQuery } from "../graphql/operations";
 
 type Team = { id: string; name: string; group: string } | null;
-type Pick = { pickedTeamId: string; points?: number | null } | null;
+type Pick = { pickedTeamId: string | null; points?: number | null } | null;
 type MatchResult = { homeScore: number; awayScore: number; winnerTeamId: string | null } | null;
 
 type Match = {
@@ -22,13 +22,13 @@ type Match = {
 
 type Props = {
   match: Match;
-  onPick: (matchId: string, teamId: string) => void;
+  onPick: (matchId: string, teamId: string | null) => void;
   onUsernameClick?: (userId: string, username: string) => void;
 };
 
 type MatchPickRow = {
   user: { id: string; username: string };
-  pickedTeam: { id: string; name: string; group: string };
+  pickedTeam: { id: string; name: string; group: string } | null;
 };
 
 export function MatchCard({ match, onPick, onUsernameClick }: Props) {
@@ -37,7 +37,9 @@ export function MatchCard({ match, onPick, onUsernameClick }: Props) {
   const homeId = match.homeTeam?.id ?? null;
   const awayId = match.awayTeam?.id ?? null;
   const noTeams = !homeId || !awayId;
+  const hasPick = match.myPick != null;
   const pickedId = match.myPick?.pickedTeamId ?? null;
+  const pickedDraw = hasPick && pickedId === null;
   const result = match.result ?? null;
   const points = match.myPick?.points ?? null;
 
@@ -55,18 +57,19 @@ export function MatchCard({ match, onPick, onUsernameClick }: Props) {
   });
 
   function pickBtn(label: string, teamId: string | null) {
-    const isPicked = pickedId === teamId;
-    const disabled = match.isLocked || noTeams;
+    const isDraw = teamId === null;
+    const isPicked = isDraw ? pickedDraw : pickedId === teamId;
+    const disabled = match.isLocked || (!isDraw && noTeams);
     return (
       <button
         type="button"
-        className={`pick-btn${isPicked ? " picked" : ""}`}
+        className={`pick-btn${isDraw ? " pick-btn-draw" : ""}${isPicked ? " picked" : ""}`}
         data-team-id={teamId ?? undefined}
         disabled={disabled}
-        onClick={() => teamId && onPick(match.id, teamId)}
+        onClick={() => onPick(match.id, teamId)}
       >
         {label}
-        {match.isLocked && " 🔒"}
+        {match.isLocked && isDraw && " 🔒"}
       </button>
     );
   }
@@ -104,12 +107,14 @@ export function MatchCard({ match, onPick, onUsernameClick }: Props) {
           <span className="score">
             {result.homeScore} – {result.awayScore}
           </span>
+        ) : match.round === "group" ? (
+          pickBtn("Draw", null)
         ) : (
           <span className="vs">vs</span>
         )}
         {pickBtn(match.awayTeamLabel, awayId)}
       </div>
-      {result && pickedId && (
+      {result && hasPick && (
         <span className="pick-result">
           {points !== null && points > 0 ? `✅ +${points}` : "❌"}
         </span>
@@ -131,7 +136,7 @@ export function MatchCard({ match, onPick, onUsernameClick }: Props) {
                 >
                   {mp.user.username}
                 </button>
-                <span className="pick-team-badge">{mp.pickedTeam.name}</span>
+                <span className="pick-team-badge">{mp.pickedTeam?.name ?? "Draw"}</span>
                 <Link href={`/user/${mp.user.id}`} className="pick-profile-link">
                   ↗
                 </Link>

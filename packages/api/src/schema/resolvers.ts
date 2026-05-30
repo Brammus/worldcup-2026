@@ -135,11 +135,15 @@ export const resolvers = {
       if (matchPickRows.length === 0) return [];
 
       const userIds = [...new Set(matchPickRows.map((p) => p.userId))];
-      const teamIds = [...new Set(matchPickRows.map((p) => p.pickedTeamId))];
+      const teamIds = [
+        ...new Set(matchPickRows.flatMap((p) => (p.pickedTeamId ? [p.pickedTeamId] : []))),
+      ];
 
       const [usersRows, teamsRows] = await Promise.all([
         ctx.db.select().from(users).where(inArray(users.id, userIds)),
-        ctx.db.select().from(teams).where(inArray(teams.id, teamIds)),
+        teamIds.length > 0
+          ? ctx.db.select().from(teams).where(inArray(teams.id, teamIds))
+          : Promise.resolve([]),
       ]);
 
       const userMap = new Map(usersRows.map((u) => [u.id, u]));
@@ -148,10 +152,14 @@ export const resolvers = {
       const result = [];
       for (const pick of matchPickRows) {
         const user = userMap.get(pick.userId);
-        const team = teamMap.get(pick.pickedTeamId);
-        if (user && team) {
+        const team = pick.pickedTeamId ? (teamMap.get(pick.pickedTeamId) ?? null) : null;
+        if (user) {
           result.push({
-            user: { id: user.id, username: user.username, isAdmin: user.isAdmin },
+            user: {
+              id: user.id,
+              username: user.username,
+              isAdmin: user.isAdmin,
+            },
             pickedTeam: team,
           });
         }
@@ -179,7 +187,10 @@ export const resolvers = {
         throw new GraphQLError("Password must be at least 8 characters");
       }
 
-      const passwordHash = await Bun.password.hash(password, { algorithm: "bcrypt", cost: 12 });
+      const passwordHash = await Bun.password.hash(password, {
+        algorithm: "bcrypt",
+        cost: 12,
+      });
 
       try {
         const inserted = await ctx.db
@@ -229,7 +240,7 @@ export const resolvers = {
 
     setPick: async (
       _: unknown,
-      { matchId, teamId }: { matchId: string; teamId: string },
+      { matchId, teamId }: { matchId: string; teamId?: string | null },
       ctx: GraphQLContext,
     ) => {
       if (!ctx.currentUser) throw new GraphQLError("Not authenticated");
@@ -238,16 +249,25 @@ export const resolvers = {
       if (!match) throw new GraphQLError("Match not found");
       if (match.startsAt <= new Date()) throw new GraphQLError("Match is locked");
 
-      if (teamId !== match.homeTeamId && teamId !== match.awayTeamId) {
+      if (teamId == null) {
+        if (match.round !== "group") {
+          throw new GraphQLError("Draw picks are only allowed in group stage matches");
+        }
+      } else if (teamId !== match.homeTeamId && teamId !== match.awayTeamId) {
         throw new GraphQLError("Team is not part of this match");
       }
 
+      const resolvedTeamId = teamId ?? null;
       const [pick] = await ctx.db
         .insert(picks)
-        .values({ userId: ctx.currentUser.id, matchId, pickedTeamId: teamId })
+        .values({
+          userId: ctx.currentUser.id,
+          matchId,
+          pickedTeamId: resolvedTeamId,
+        })
         .onConflictDoUpdate({
           target: [picks.userId, picks.matchId],
-          set: { pickedTeamId: teamId },
+          set: { pickedTeamId: resolvedTeamId },
         })
         .returning();
       return pick;
@@ -260,7 +280,12 @@ export const resolvers = {
         winnerId,
         homeScore,
         awayScore,
-      }: { matchId: string; winnerId?: string | null; homeScore: number; awayScore: number },
+      }: {
+        matchId: string;
+        winnerId?: string | null;
+        homeScore: number;
+        awayScore: number;
+      },
       ctx: GraphQLContext,
     ) => {
       if (!ctx.currentUser?.isAdmin) throw new GraphQLError("Forbidden");
@@ -271,7 +296,12 @@ export const resolvers = {
 
       await ctx.db
         .insert(matchResults)
-        .values({ matchId, winnerTeamId: winnerId ?? null, homeScore, awayScore })
+        .values({
+          matchId,
+          winnerTeamId: winnerId ?? null,
+          homeScore,
+          awayScore,
+        })
         .onConflictDoUpdate({
           target: [matchResults.matchId],
           set: { winnerTeamId: winnerId ?? null, homeScore, awayScore },
@@ -334,13 +364,14 @@ export const resolvers = {
       return match;
     },
 
-    pickedTeam: async (pick: { pickedTeamId: string }, _: unknown, ctx: GraphQLContext) => {
+    pickedTeam: async (pick: { pickedTeamId: string | null }, _: unknown, ctx: GraphQLContext) => {
+      if (!pick.pickedTeamId) return null;
       const [team] = await ctx.db.select().from(teams).where(eq(teams.id, pick.pickedTeamId));
-      return team;
+      return team ?? null;
     },
 
     points: async (
-      pick: { matchId: string; pickedTeamId: string },
+      pick: { matchId: string; pickedTeamId: string | null },
       _: unknown,
       ctx: GraphQLContext,
     ) => {
