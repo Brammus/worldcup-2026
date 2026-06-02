@@ -30,14 +30,6 @@ type MeData = {
 // draft: teamId -> rank (1-6), or undefined if not yet ranked
 type DraftState = Record<string, number | undefined>;
 
-function buildDraftFromRanking(ranking: { rank: number; team: { id: string } }[]): DraftState {
-  const draft: DraftState = {};
-  for (const entry of ranking) {
-    draft[entry.team.id] = entry.rank;
-  }
-  return draft;
-}
-
 export function OsrsPage() {
   const [teamsResult, refetchTeams] = useQuery<OsrsTeamsData>({ query: OsrsTeamsQuery });
   const [meResult] = useQuery<MeData>({ query: MeQuery });
@@ -50,10 +42,21 @@ export function OsrsPage() {
 
   const [draft, setDraft] = useState<DraftState>({});
 
-  // Sync draft from server whenever data arrives or changes
+  // Stable primitive key — only changes when ranking content actually changes
+  const rankingKey = myRanking
+    .map((r) => `${r.team.id}:${r.rank}`)
+    .sort()
+    .join("|");
+
+  // Sync draft when rankingKey changes (avoids infinite loop from array reference churn)
   useEffect(() => {
-    setDraft(buildDraftFromRanking(myRanking));
-  }, [myRanking]);
+    const next: DraftState = {};
+    for (const part of rankingKey ? rankingKey.split("|") : []) {
+      const idx = part.lastIndexOf(":");
+      if (idx > 0) next[part.slice(0, idx)] = Number(part.slice(idx + 1));
+    }
+    setDraft(next);
+  }, [rankingKey]);
 
   const handleRankButton = (teamId: string, rank: number) => {
     setDraft((prev) => {
