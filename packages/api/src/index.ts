@@ -1,3 +1,4 @@
+import path from "node:path";
 import { makeExecutableSchema } from "@graphql-tools/schema";
 import { eq } from "drizzle-orm";
 import { GraphQLError, Kind } from "graphql";
@@ -134,9 +135,28 @@ const yoga = createYoga({
   ],
 });
 
+// In production the Vite build is served from packages/web/dist
+const staticDir = isProduction ? path.resolve(import.meta.dir, "../../../packages/web/dist") : null;
+
 const server = Bun.serve({
   port: process.env.PORT ?? 4000,
-  fetch: yoga.fetch,
+  async fetch(req) {
+    const { pathname } = new URL(req.url);
+
+    if (pathname.startsWith("/graphql")) {
+      return yoga.fetch(req);
+    }
+
+    if (staticDir) {
+      const target = pathname === "/" ? "index.html" : pathname;
+      const file = Bun.file(path.join(staticDir, target));
+      if (await file.exists()) return new Response(file);
+      // SPA fallback — let React Router handle unknown paths
+      return new Response(Bun.file(path.join(staticDir, "index.html")));
+    }
+
+    return new Response("Not found", { status: 404 });
+  },
 });
 
 console.log(`GraphQL API running at http://localhost:${server.port}/graphql`);
