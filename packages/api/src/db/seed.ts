@@ -987,9 +987,9 @@ export async function seed(db: DB) {
       color: "#2c2c3e",
       players: [
         { name: "DINO", isCaptain: true },
-        { name: "DUBIEDOBIES", isCaptain: false },
-        { name: "GNOMONKEY", isCaptain: false },
-        { name: "RAIKESY", isCaptain: false },
+        { name: "BOATY", isCaptain: false },
+        { name: "61M", isCaptain: false },
+        { name: "SICK NERD", isCaptain: false },
         { name: "MMORPG", isCaptain: false },
       ],
     },
@@ -998,10 +998,10 @@ export async function seed(db: DB) {
       color: "#2d7a2d",
       players: [
         { name: "WESTHAM", isCaptain: true },
-        { name: "BOATY", isCaptain: false },
-        { name: "61M", isCaptain: false },
-        { name: "SICK NERD", isCaptain: false },
-        { name: "EVSCAPE", isCaptain: false },
+        { name: "GREG", isCaptain: false },
+        { name: "MIKA", isCaptain: false },
+        { name: "ELIOP14", isCaptain: false },
+        { name: "FAUX", isCaptain: false },
       ],
     },
     {
@@ -1012,7 +1012,7 @@ export async function seed(db: DB) {
         { name: "LAKE", isCaptain: false },
         { name: "PIP", isCaptain: false },
         { name: "SYNQ", isCaptain: false },
-        { name: "FAUX", isCaptain: false },
+        { name: "ALFIE", isCaptain: false },
       ],
     },
     {
@@ -1023,7 +1023,7 @@ export async function seed(db: DB) {
         { name: "TORVESTA", isCaptain: false },
         { name: "MUTS", isCaptain: false },
         { name: "V THE VICTIM", isCaptain: false },
-        { name: "ALFIE", isCaptain: false },
+        { name: "C ENGINEER", isCaptain: false },
       ],
     },
     {
@@ -1042,10 +1042,10 @@ export async function seed(db: DB) {
       color: "#c9a227",
       players: [
         { name: "ODABLOCK", isCaptain: true },
-        { name: "GREG", isCaptain: false },
-        { name: "MIKA", isCaptain: false },
-        { name: "ELIOP14", isCaptain: false },
-        { name: "C ENGINEER", isCaptain: false },
+        { name: "DUBIEDOBIES", isCaptain: false },
+        { name: "GNOMONKEY", isCaptain: false },
+        { name: "RAIKESY", isCaptain: false },
+        { name: "EVSCAPE", isCaptain: false },
       ],
     },
   ];
