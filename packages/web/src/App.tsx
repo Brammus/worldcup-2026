@@ -4,6 +4,7 @@ import { AuthGuard } from "./components/AuthGuard";
 import { AdminPage } from "./pages/AdminPage";
 import { HomePage } from "./pages/HomePage";
 import { LoginPage } from "./pages/LoginPage";
+import { OsrsPage } from "./pages/OsrsPage";
 import { RegisterPage } from "./pages/RegisterPage";
 import { ScoreboardPage } from "./pages/ScoreboardPage";
 import { UserPicksPage } from "./pages/UserPicksPage";
@@ -14,6 +15,7 @@ function Routes() {
       <Route path="/login" component={LoginPage} />
       <Route path="/register" component={RegisterPage} />
       <Route path="/scoreboard" component={ScoreboardPage} />
+      <Route path="/osrs" component={OsrsPage} />
       <Route path="/user/:userId" component={UserPicksPage} />
       <Route path="/admin">
         <AuthGuard>

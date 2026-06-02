@@ -4,7 +4,16 @@ import { resolvers } from "../../schema/resolvers";
 import type { GraphQLContext } from "../../schema/resolvers";
 import { db } from "../client";
 import { runMigrations } from "../migrate";
-import { matchResults, matches, picks, teams, users } from "../schema";
+import {
+  matchResults,
+  matches,
+  osrsPlayers,
+  osrsTeamPicks,
+  osrsTeams,
+  picks,
+  teams,
+  users,
+} from "../schema";
 import { seed } from "../seed";
 
 const ctx: GraphQLContext = {
@@ -20,6 +29,9 @@ beforeAll(async () => {
   await db.delete(picks);
   await db.delete(matchResults);
   await db.delete(matches);
+  await db.delete(osrsTeamPicks);
+  await db.delete(osrsPlayers);
+  await db.delete(osrsTeams);
   await db.delete(users);
   await db.delete(teams);
   await seed(db);

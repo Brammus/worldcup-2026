@@ -18,6 +18,9 @@ export function NavBar({ currentUser }: Props) {
           <Link href="/scoreboard" className="navbar-link">
             🏆 Scoreboard
           </Link>
+          <Link href="/osrs" className="navbar-link">
+            🎮 OSRS
+          </Link>
           {currentUser?.isAdmin && (
             <Link href="/admin" className="navbar-link">
               🛠 Admin

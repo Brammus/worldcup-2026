@@ -22,6 +22,13 @@
       "when": 1748563200000,
       "tag": "0002_picks_draw_nullable",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1780419655094,
+      "tag": "0003_soft_speed",
+      "breakpoints": true
     }
   ]
 }

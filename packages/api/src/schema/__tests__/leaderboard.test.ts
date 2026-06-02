@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, it } from "bun:test";
 import { db } from "../../db/client";
 import { runMigrations } from "../../db/migrate";
-import { matchResults, matches, picks, teams, users } from "../../db/schema";
+import { matchResults, matches, osrsTeamPicks, picks, teams, users } from "../../db/schema";
 import type { GraphQLContext } from "../resolvers";
 import { resolvers } from "../resolvers";
 
@@ -29,6 +29,7 @@ beforeAll(async () => {
   await db.delete(picks);
   await db.delete(matchResults);
   await db.delete(matches);
+  await db.delete(osrsTeamPicks);
   await db.delete(users);
   await db.delete(teams);
 
