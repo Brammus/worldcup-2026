@@ -39,17 +39,16 @@ export const osrsResolvers = {
       const teams = await ctx.db.select().from(osrsTeams).where(inArray(osrsTeams.id, teamIds));
       if (teams.length !== 6) throw new GraphQLError("One or more teams not found");
       // Delete existing picks, insert new ones
-      await ctx.db.delete(osrsTeamPicks).where(eq(osrsTeamPicks.userId, ctx.currentUser.id));
+      const userId = ctx.currentUser.id;
+      await ctx.db.delete(osrsTeamPicks).where(eq(osrsTeamPicks.userId, userId));
       await ctx.db
         .insert(osrsTeamPicks)
-        .values(
-          rankings.map((r) => ({ userId: ctx.currentUser!.id, teamId: r.teamId, rank: r.rank })),
-        );
+        .values(rankings.map((r) => ({ userId, teamId: r.teamId, rank: r.rank })));
       // Return sorted result
       const teamMap = new Map(teams.map((t) => [t.id, t]));
       return rankings
         .sort((a, b) => a.rank - b.rank)
-        .map((r) => ({ rank: r.rank, team: teamMap.get(r.teamId)! }));
+        .map((r) => ({ rank: r.rank, team: teamMap.get(r.teamId) }));
     },
   },
   OsrsTeam: {
