@@ -13,16 +13,18 @@ type PickMatch = {
 type UserPick = {
   id: string;
   matchId: string;
-  pickedTeamId: string;
+  pickedTeamId: string | null;
   points: number | null;
   match: PickMatch;
-  pickedTeam: { id: string; name: string; group: string };
+  pickedTeam: { id: string; name: string; group: string } | null;
 };
 
 const ALL_GROUPS = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L"];
 
 function computeGroupPredictions(picks: UserPick[]): Map<string, string> {
-  const groupPicks = picks.filter((p) => p.match.round === "group" && p.match.group != null);
+  const groupPicks = picks.filter(
+    (p) => p.match.round === "group" && p.match.group != null && p.pickedTeam != null,
+  );
 
   // For each group, count picks per team
   const groupTeamCounts = new Map<string, Map<string, { name: string; count: number }>>();
@@ -34,6 +36,7 @@ function computeGroupPredictions(picks: UserPick[]): Map<string, string> {
     }
     const teamCounts = groupTeamCounts.get(group) as Map<string, { name: string; count: number }>;
     const teamId = pick.pickedTeamId;
+    if (!teamId || !pick.pickedTeam) continue;
     const existing = teamCounts.get(teamId);
     if (existing) {
       existing.count += 1;
