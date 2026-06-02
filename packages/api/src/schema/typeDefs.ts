@@ -9,7 +9,7 @@ export const typeDefs = /* GraphQL */ `
     userPicks(userId: ID!): [Pick!]!
     matchPicks(matchId: ID!): [MatchPick!]!
     osrsTeams: [OsrsTeam!]!
-    myOsrsTeamPick: OsrsTeam
+    myOsrsRanking: [OsrsTeamRanking!]!
   }
 
   type MatchPick {
@@ -31,7 +31,17 @@ export const typeDefs = /* GraphQL */ `
     logout: Boolean!
     setPick(matchId: ID!, teamId: ID): Pick!
     setResult(matchId: ID!, winnerId: ID, homeScore: Int!, awayScore: Int!): Match!
-    pickOsrsTeam(teamId: ID!): OsrsTeam!
+    rankOsrsTeams(rankings: [OsrsRankingInput!]!): [OsrsTeamRanking!]!
+  }
+
+  type OsrsTeamRanking {
+    rank: Int!
+    team: OsrsTeam!
+  }
+
+  input OsrsRankingInput {
+    teamId: ID!
+    rank: Int!
   }
 
   type OsrsTeam {

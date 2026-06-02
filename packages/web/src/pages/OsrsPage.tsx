@@ -1,6 +1,7 @@
+import { useState } from "react";
 import { useMutation, useQuery } from "urql";
 import { NavBar } from "../components/NavBar";
-import { MeQuery, OsrsTeamsQuery, PickOsrsTeamMutation } from "../graphql/operations";
+import { MeQuery, OsrsTeamsQuery, RankOsrsTeamsMutation } from "../graphql/operations";
 
 type OsrsPlayer = {
   id: string;
@@ -19,26 +20,80 @@ type OsrsTeam = {
 
 type OsrsTeamsData = {
   osrsTeams: OsrsTeam[];
-  myOsrsTeamPick: { id: string } | null;
+  myOsrsRanking: { rank: number; team: { id: string } }[];
 };
 
 type MeData = {
   me: { id: string; username: string; isAdmin: boolean } | null;
 };
 
+// draft: teamId -> rank (1-6), or undefined if not yet ranked
+type DraftState = Record<string, number | undefined>;
+
+function buildDraftFromRanking(ranking: { rank: number; team: { id: string } }[]): DraftState {
+  const draft: DraftState = {};
+  for (const entry of ranking) {
+    draft[entry.team.id] = entry.rank;
+  }
+  return draft;
+}
+
 export function OsrsPage() {
   const [teamsResult, refetchTeams] = useQuery<OsrsTeamsData>({ query: OsrsTeamsQuery });
   const [meResult] = useQuery<MeData>({ query: MeQuery });
-  const [, pickTeam] = useMutation(PickOsrsTeamMutation);
+  const [, rankTeams] = useMutation(RankOsrsTeamsMutation);
+  const [saving, setSaving] = useState(false);
 
   const teams = teamsResult.data?.osrsTeams ?? [];
-  const myPickId = teamsResult.data?.myOsrsTeamPick?.id ?? null;
+  const myRanking = teamsResult.data?.myOsrsRanking ?? [];
   const me = meResult.data?.me ?? null;
 
-  const handlePick = async (teamId: string) => {
-    await pickTeam({ teamId });
-    refetchTeams({ requestPolicy: "network-only" });
+  // Local draft state — initialised from saved ranking when data loads
+  const [draft, setDraft] = useState<DraftState>(() => buildDraftFromRanking(myRanking));
+
+  // Re-sync draft when server data first arrives (or refetches)
+  const [lastFetchedRanking, setLastFetchedRanking] = useState(myRanking);
+  if (myRanking !== lastFetchedRanking) {
+    setLastFetchedRanking(myRanking);
+    setDraft(buildDraftFromRanking(myRanking));
+  }
+
+  const handleRankButton = (teamId: string, rank: number) => {
+    setDraft((prev) => {
+      const next = { ...prev };
+      // Unassign any other team that currently has this rank
+      for (const id of Object.keys(next)) {
+        if (next[id] === rank) {
+          next[id] = undefined;
+        }
+      }
+      // If this team already had this rank, toggle it off; otherwise assign
+      if (prev[teamId] === rank) {
+        next[teamId] = undefined;
+      } else {
+        next[teamId] = rank;
+      }
+      return next;
+    });
   };
+
+  const draftComplete = teams.length === 6 && teams.every((t) => draft[t.id] !== undefined);
+
+  const handleSave = async () => {
+    if (!draftComplete) return;
+    setSaving(true);
+    const rankings = teams.map((t) => ({ teamId: t.id, rank: draft[t.id] as number }));
+    await rankTeams({ rankings });
+    refetchTeams({ requestPolicy: "network-only" });
+    setSaving(false);
+  };
+
+  // Saved ranking summary: sorted by rank
+  const savedSummary = [...myRanking].sort((a, b) => a.rank - b.rank);
+  const hasSavedRanking = savedSummary.length === 6;
+
+  // Map team id -> name for summary
+  const teamNameMap = new Map(teams.map((t) => [t.id, t.name]));
 
   if (teamsResult.fetching && teams.length === 0) {
     return <div className="loading">Loading…</div>;
@@ -48,25 +103,38 @@ export function OsrsPage() {
     <div className="osrs-page">
       <NavBar currentUser={me} />
       <div className="osrs-header">
-        <h1>🎮 OSRS Team Pick</h1>
+        <h1>🎮 OSRS Team Ranking</h1>
         <p className="osrs-subtitle">
-          Pick the OldSchool RuneScape team you think will win the streamer competition. You can
-          change your pick at any time.
+          Rank all 6 OldSchool RuneScape teams from 1st to 6th place. You can update your ranking at
+          any time.
         </p>
-        {!me && <p className="osrs-login-notice">Log in to pick a team.</p>}
+        {!me && <p className="osrs-login-notice">Log in to rank teams.</p>}
       </div>
+
+      {hasSavedRanking && (
+        <div className="osrs-ranking-summary">
+          <span className="osrs-ranking-summary-label">Your ranking:</span>
+          {savedSummary.map((entry) => (
+            <span key={entry.rank} className="osrs-ranking-summary-entry">
+              <span className="osrs-ranking-summary-pos">{entry.rank}.</span>
+              {teamNameMap.get(entry.team.id) ?? entry.team.id}
+            </span>
+          ))}
+        </div>
+      )}
+
       <div className="osrs-teams-grid">
         {teams.map((team) => {
-          const isPicked = team.id === myPickId;
+          const assignedRank = draft[team.id];
           return (
             <div
               key={team.id}
-              className={`osrs-team-card${isPicked ? " osrs-team-card--picked" : ""}`}
+              className={`osrs-team-card${assignedRank !== undefined ? " osrs-team-card--ranked" : ""}`}
             >
               <div className="osrs-team-header" style={{ backgroundColor: team.color }}>
                 <span className="osrs-team-name">{team.name}</span>
                 <span className="osrs-pick-count">
-                  {team.pickCount} {team.pickCount === 1 ? "pick" : "picks"}
+                  {team.pickCount} {team.pickCount === 1 ? "#1 pick" : "#1 picks"}
                 </span>
               </div>
               <div className="osrs-team-body">
@@ -78,21 +146,47 @@ export function OsrsPage() {
                     </li>
                   ))}
                 </ul>
-                <button
-                  type="button"
-                  className={`osrs-pick-btn${isPicked ? " osrs-pick-btn--picked" : ""}`}
-                  style={isPicked ? { backgroundColor: team.color, borderColor: team.color } : {}}
-                  disabled={!me}
-                  onClick={() => handlePick(team.id)}
-                  title={!me ? "Log in to pick a team" : undefined}
-                >
-                  {isPicked ? "Your pick ✓" : "Pick this team"}
-                </button>
+                {me ? (
+                  <div className="osrs-rank-buttons">
+                    {[1, 2, 3, 4, 5, 6].map((rank) => (
+                      <button
+                        key={rank}
+                        type="button"
+                        className={`osrs-rank-btn${assignedRank === rank ? " osrs-rank-btn--active" : ""}`}
+                        style={
+                          assignedRank === rank
+                            ? { backgroundColor: team.color, borderColor: team.color }
+                            : {}
+                        }
+                        onClick={() => handleRankButton(team.id, rank)}
+                        aria-label={`Rank ${team.name} ${rank}`}
+                      >
+                        {rank}
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="osrs-rank-disabled">Log in to rank teams</p>
+                )}
               </div>
             </div>
           );
         })}
       </div>
+
+      {me && (
+        <div className="osrs-save-row">
+          <button
+            type="button"
+            className="osrs-save-btn"
+            disabled={!draftComplete || saving}
+            onClick={handleSave}
+          >
+            {saving ? "Saving..." : "Save ranking"}
+          </button>
+          {!draftComplete && <span className="osrs-save-hint">Rank all 6 teams to save</span>}
+        </div>
+      )}
     </div>
   );
 }

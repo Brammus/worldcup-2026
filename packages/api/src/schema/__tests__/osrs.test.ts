@@ -14,6 +14,7 @@ function makeCtx(overrides: Partial<GraphQLContext> = {}): GraphQLContext {
 
 // ── setup ─────────────────────────────────────────────────────────────────────
 
+let teamIds: string[] = [];
 let teamDinoId: string;
 let teamWesthamId: string;
 let userId: string;
@@ -40,17 +41,22 @@ beforeAll(async () => {
   userId = u1?.id ?? "";
   otherUserId = u2?.id ?? "";
 
-  // Insert OSRS teams
-  const [dino] = await db
+  // Insert 6 OSRS teams (required by rankOsrsTeams mutation)
+  const teamValues = [
+    { name: "DINO", color: "#2c2c3e" },
+    { name: "WESTHAM", color: "#2d7a2d" },
+    { name: "WOOX", color: "#c0392b" },
+    { name: "PURESPAM", color: "#8e44ad" },
+    { name: "SETTLED", color: "#2980b9" },
+    { name: "TORVESTA", color: "#e67e22" },
+  ];
+  const insertedTeams = await db
     .insert(osrsTeams)
-    .values({ name: "DINO", color: "#2c2c3e" })
+    .values(teamValues)
     .returning({ id: osrsTeams.id });
-  const [westham] = await db
-    .insert(osrsTeams)
-    .values({ name: "WESTHAM", color: "#2d7a2d" })
-    .returning({ id: osrsTeams.id });
-  teamDinoId = dino?.id ?? "";
-  teamWesthamId = westham?.id ?? "";
+  teamIds = insertedTeams.map((t) => t.id);
+  teamDinoId = teamIds[0] ?? "";
+  teamWesthamId = teamIds[1] ?? "";
 
   // Insert players for DINO
   await db.insert(osrsPlayers).values([
@@ -71,7 +77,7 @@ describe("Query.osrsTeams", () => {
   it("returns all teams ordered by name", async () => {
     const ctx = makeCtx();
     const result = await resolvers.Query.osrsTeams(undefined, undefined, ctx);
-    expect(result.length).toBeGreaterThanOrEqual(2);
+    expect(result.length).toBeGreaterThanOrEqual(6);
     // Ordered by name alphabetically: DINO before WESTHAM
     const names = result.map((t: { name: string }) => t.name);
     expect(names.indexOf("DINO")).toBeLessThan(names.indexOf("WESTHAM"));
@@ -86,82 +92,122 @@ describe("Query.osrsTeams", () => {
   });
 });
 
-// ── Query.myOsrsTeamPick ──────────────────────────────────────────────────────
+// ── Query.myOsrsRanking ───────────────────────────────────────────────────────
 
-describe("Query.myOsrsTeamPick", () => {
-  it("returns null when unauthenticated", async () => {
+describe("Query.myOsrsRanking", () => {
+  it("returns empty array when unauthenticated", async () => {
     const ctx = makeCtx({ currentUser: null });
-    const result = await resolvers.Query.myOsrsTeamPick(undefined, undefined, ctx);
-    expect(result).toBeNull();
+    const result = await resolvers.Query.myOsrsRanking(undefined, undefined, ctx);
+    expect(result).toEqual([]);
   });
 
-  it("returns null when user has no pick", async () => {
+  it("returns empty array when user has no picks", async () => {
     const ctx = makeCtx({ currentUser: { id: userId, username: "alice_osrs", isAdmin: false } });
-    const result = await resolvers.Query.myOsrsTeamPick(undefined, undefined, ctx);
-    expect(result).toBeNull();
+    // Ensure no picks for this user
+    await db.delete(osrsTeamPicks).where(eq(osrsTeamPicks.userId, userId));
+    const result = await resolvers.Query.myOsrsRanking(undefined, undefined, ctx);
+    expect(result).toEqual([]);
   });
 
-  it("returns the picked team after making a pick", async () => {
-    // Make a pick first
-    await db.insert(osrsTeamPicks).values({ userId, teamId: teamDinoId });
+  it("returns picks sorted by rank after ranking", async () => {
+    // Clean and set up a full ranking for userId
+    await db.delete(osrsTeamPicks).where(eq(osrsTeamPicks.userId, userId));
+    const rankings = teamIds.map((id, i) => ({ teamId: id, rank: i + 1 }));
+    await db
+      .insert(osrsTeamPicks)
+      .values(rankings.map((r) => ({ userId, teamId: r.teamId, rank: r.rank })));
 
     const ctx = makeCtx({ currentUser: { id: userId, username: "alice_osrs", isAdmin: false } });
-    const result = await resolvers.Query.myOsrsTeamPick(undefined, undefined, ctx);
-    expect(result).not.toBeNull();
-    expect(result?.id).toBe(teamDinoId);
-    expect(result?.name).toBe("DINO");
+    const result = await resolvers.Query.myOsrsRanking(undefined, undefined, ctx);
+    expect(result.length).toBe(6);
+    // Verify sorted by rank
+    const ranks = result.map((r: { rank: number }) => r.rank);
+    expect(ranks).toEqual([1, 2, 3, 4, 5, 6]);
+    // Verify first entry points to the first team
+    expect(result[0]?.team.id).toBe(teamIds[0] ?? "");
+    await db.delete(osrsTeamPicks).where(eq(osrsTeamPicks.userId, userId));
   });
 });
 
-// ── Mutation.pickOsrsTeam ─────────────────────────────────────────────────────
+// ── Mutation.rankOsrsTeams ────────────────────────────────────────────────────
 
-describe("Mutation.pickOsrsTeam", () => {
+describe("Mutation.rankOsrsTeams", () => {
   it("throws when unauthenticated", async () => {
     const ctx = makeCtx({ currentUser: null });
-    await expect(
-      resolvers.Mutation.pickOsrsTeam(undefined, { teamId: teamDinoId }, ctx),
-    ).rejects.toThrow("Not authenticated");
+    const rankings = teamIds.map((id, i) => ({ teamId: id, rank: i + 1 }));
+    await expect(resolvers.Mutation.rankOsrsTeams(undefined, { rankings }, ctx)).rejects.toThrow(
+      "Not authenticated",
+    );
   });
 
-  it("throws when team does not exist", async () => {
-    const ctx = makeCtx({
-      currentUser: { id: userId, username: "alice_osrs", isAdmin: false },
-    });
-    await expect(
-      resolvers.Mutation.pickOsrsTeam(
-        undefined,
-        { teamId: "00000000-0000-0000-0000-000000000000" },
-        ctx,
-      ),
-    ).rejects.toThrow("Team not found");
+  it("throws when not exactly 6 rankings", async () => {
+    const ctx = makeCtx({ currentUser: { id: userId, username: "alice_osrs", isAdmin: false } });
+    const rankings = [{ teamId: teamDinoId, rank: 1 }];
+    await expect(resolvers.Mutation.rankOsrsTeams(undefined, { rankings }, ctx)).rejects.toThrow(
+      "Must rank all 6 teams",
+    );
   });
 
-  it("stores a pick and returns the team", async () => {
-    const ctx = makeCtx({
-      currentUser: { id: otherUserId, username: "bob_osrs", isAdmin: false },
-    });
-    const result = await resolvers.Mutation.pickOsrsTeam(undefined, { teamId: teamWesthamId }, ctx);
-    expect(result?.id).toBe(teamWesthamId);
-    expect(result?.name).toBe("WESTHAM");
+  it("throws when duplicate ranks", async () => {
+    const ctx = makeCtx({ currentUser: { id: userId, username: "alice_osrs", isAdmin: false } });
+    // 6 entries but rank 1 is duplicated
+    const rankings = teamIds.map((id, i) => ({ teamId: id, rank: i === 5 ? 1 : i + 1 }));
+    await expect(resolvers.Mutation.rankOsrsTeams(undefined, { rankings }, ctx)).rejects.toThrow(
+      "Rankings must be ranks 1-6 with no duplicates",
+    );
   });
 
-  it("upserts — changing pick replaces the previous one", async () => {
-    const ctx = makeCtx({
-      currentUser: { id: otherUserId, username: "bob_osrs", isAdmin: false },
-    });
-    // First pick WESTHAM (from previous test or fresh)
-    await resolvers.Mutation.pickOsrsTeam(undefined, { teamId: teamWesthamId }, ctx);
-    // Now pick DINO
-    const result = await resolvers.Mutation.pickOsrsTeam(undefined, { teamId: teamDinoId }, ctx);
-    expect(result?.id).toBe(teamDinoId);
+  it("throws when duplicate teamIds", async () => {
+    const ctx = makeCtx({ currentUser: { id: userId, username: "alice_osrs", isAdmin: false } });
+    // Repeat the first team ID, cover 6 entries with ranks 1-6
+    const rankings = [
+      { teamId: teamDinoId, rank: 1 },
+      { teamId: teamDinoId, rank: 2 },
+      { teamId: teamIds[2] ?? "", rank: 3 },
+      { teamId: teamIds[3] ?? "", rank: 4 },
+      { teamId: teamIds[4] ?? "", rank: 5 },
+      { teamId: teamIds[5] ?? "", rank: 6 },
+    ];
+    await expect(resolvers.Mutation.rankOsrsTeams(undefined, { rankings }, ctx)).rejects.toThrow(
+      "Each team must appear once",
+    );
+  });
 
-    // Verify only one pick for this user
-    const userPicks = await db
-      .select()
-      .from(osrsTeamPicks)
-      .where(eq(osrsTeamPicks.userId, otherUserId));
-    expect(userPicks.length).toBe(1);
-    expect(userPicks[0]?.teamId).toBe(teamDinoId);
+  it("stores ranking and returns sorted result", async () => {
+    await db.delete(osrsTeamPicks).where(eq(osrsTeamPicks.userId, userId));
+    const ctx = makeCtx({ currentUser: { id: userId, username: "alice_osrs", isAdmin: false } });
+    // Submit in reverse order to verify sort
+    const rankings = teamIds.map((id, i) => ({ teamId: id, rank: 6 - i }));
+    const result = await resolvers.Mutation.rankOsrsTeams(undefined, { rankings }, ctx);
+
+    expect(result.length).toBe(6);
+    // Result should be sorted by rank ascending
+    const resultRanks = result.map((r: { rank: number }) => r.rank);
+    expect(resultRanks).toEqual([1, 2, 3, 4, 5, 6]);
+
+    // Verify persisted in DB
+    const dbPicks = await db.select().from(osrsTeamPicks).where(eq(osrsTeamPicks.userId, userId));
+    expect(dbPicks.length).toBe(6);
+  });
+
+  it("replaces previous ranking on second call", async () => {
+    const ctx = makeCtx({ currentUser: { id: userId, username: "alice_osrs", isAdmin: false } });
+    // First ranking
+    const rankings1 = teamIds.map((id, i) => ({ teamId: id, rank: i + 1 }));
+    await resolvers.Mutation.rankOsrsTeams(undefined, { rankings: rankings1 }, ctx);
+
+    // Second ranking — reversed
+    const rankings2 = teamIds.map((id, i) => ({ teamId: id, rank: 6 - i }));
+    const result = await resolvers.Mutation.rankOsrsTeams(undefined, { rankings: rankings2 }, ctx);
+
+    // Only 6 rows in DB (not 12)
+    const dbPicks = await db.select().from(osrsTeamPicks).where(eq(osrsTeamPicks.userId, userId));
+    expect(dbPicks.length).toBe(6);
+
+    // Result reflects new ranking
+    expect(result.length).toBe(6);
+    const resultRanks = result.map((r: { rank: number }) => r.rank);
+    expect(resultRanks).toEqual([1, 2, 3, 4, 5, 6]);
   });
 });
 
@@ -190,7 +236,6 @@ describe("OsrsTeam.players", () => {
 
 describe("OsrsTeam.pickCount", () => {
   it("returns 0 for a team with no picks", async () => {
-    // Clean up any existing picks for WESTHAM related test user
     await db.delete(osrsTeamPicks);
 
     const ctx = makeCtx();
@@ -198,15 +243,27 @@ describe("OsrsTeam.pickCount", () => {
     expect(count).toBe(0);
   });
 
-  it("counts picks for a team", async () => {
-    // Insert two picks for DINO
-    await db.insert(osrsTeamPicks).values([
-      { userId, teamId: teamDinoId },
-      { userId: otherUserId, teamId: teamDinoId },
-    ]);
+  it("counts only rank-1 picks for a team", async () => {
+    await db.delete(osrsTeamPicks);
+
+    // userId ranks DINO first
+    const rankingsUser1 = teamIds.map((id, i) => ({ userId, teamId: id, rank: i + 1 }));
+    await db.insert(osrsTeamPicks).values(rankingsUser1);
+
+    // otherUserId also ranks DINO first
+    const rankingsUser2 = teamIds.map((id, i) => ({
+      userId: otherUserId,
+      teamId: id,
+      rank: i + 1,
+    }));
+    await db.insert(osrsTeamPicks).values(rankingsUser2);
 
     const ctx = makeCtx();
-    const count = await resolvers.OsrsTeam.pickCount({ id: teamDinoId }, undefined, ctx);
-    expect(count).toBe(2);
+    const dinoPicks = await resolvers.OsrsTeam.pickCount({ id: teamDinoId }, undefined, ctx);
+    expect(dinoPicks).toBe(2);
+
+    // WESTHAM is ranked 2nd by both — pickCount should be 0
+    const westhamPicks = await resolvers.OsrsTeam.pickCount({ id: teamWesthamId }, undefined, ctx);
+    expect(westhamPicks).toBe(0);
   });
 });

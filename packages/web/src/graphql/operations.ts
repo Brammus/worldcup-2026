@@ -121,28 +121,21 @@ export const MatchPicksQuery = `
 export const OsrsTeamsQuery = `
   query OsrsTeams {
     osrsTeams {
-      id
-      name
-      color
-      pickCount
-      players {
-        id
-        name
-        isCaptain
-        streamUrl
-      }
+      id name color pickCount
+      players { id name isCaptain streamUrl }
     }
-    myOsrsTeamPick {
-      id
+    myOsrsRanking {
+      rank
+      team { id }
     }
   }
 `;
 
-export const PickOsrsTeamMutation = `
-  mutation PickOsrsTeam($teamId: ID!) {
-    pickOsrsTeam(teamId: $teamId) {
-      id
-      name
+export const RankOsrsTeamsMutation = `
+  mutation RankOsrsTeams($rankings: [OsrsRankingInput!]!) {
+    rankOsrsTeams(rankings: $rankings) {
+      rank
+      team { id name }
     }
   }
 `;

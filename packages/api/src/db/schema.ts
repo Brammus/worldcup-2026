@@ -79,9 +79,13 @@ export const osrsTeamPicks = pgTable(
     teamId: uuid("team_id")
       .notNull()
       .references(() => osrsTeams.id),
+    rank: integer("rank").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [unique("osrs_picks_user_unique").on(t.userId)],
+  (t) => [
+    unique("osrs_picks_user_team_unique").on(t.userId, t.teamId),
+    unique("osrs_picks_user_rank_unique").on(t.userId, t.rank),
+  ],
 );
 
 export type Team = typeof teams.$inferSelect;
