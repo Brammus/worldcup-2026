@@ -58,8 +58,7 @@ function computeGroupPredictions(picks: UserPick[]): Map<string, string> {
       if (count > maxCount) maxCount = count;
     }
     const topTeams = [...teamCounts.values()].filter(({ count }) => count === maxCount);
-    // If tied (multiple teams with same max count), show "–"
-    result.set(group, topTeams.length === 1 && topTeams[0] ? topTeams[0].name : "–");
+    result.set(group, topTeams.map((t) => t.name).join(" / "));
   }
 
   return result;

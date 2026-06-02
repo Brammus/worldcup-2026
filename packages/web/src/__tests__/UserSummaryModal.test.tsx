@@ -100,6 +100,54 @@ describe("UserSummaryModal", () => {
     expect(groupCCard?.querySelector(".group-pick")?.textContent).toBe("–");
   });
 
+  it("shows picked team even when picks are split evenly across matches in a group", async () => {
+    // User picked Mexico in one match and South Korea in another — both count=1
+    // Previously showed "–" which hid the user's picks entirely
+    const tiedPicks = [
+      {
+        id: "p1",
+        matchId: "m1",
+        pickedTeamId: "t1",
+        points: null,
+        match: {
+          id: "m1",
+          round: "group",
+          group: "A",
+          homeTeamLabel: "Mexico",
+          awayTeamLabel: "South Africa",
+          result: null,
+        },
+        pickedTeam: { id: "t1", name: "Mexico", group: "A" },
+      },
+      {
+        id: "p2",
+        matchId: "m2",
+        pickedTeamId: "t2",
+        points: null,
+        match: {
+          id: "m2",
+          round: "group",
+          group: "A",
+          homeTeamLabel: "South Korea",
+          awayTeamLabel: "Czechia",
+          result: null,
+        },
+        pickedTeam: { id: "t2", name: "South Korea", group: "A" },
+      },
+    ];
+    const { container } = await renderWithMocks(
+      <UserSummaryModal userId="u1" username="alice" onClose={mock()} />,
+      { UserPicks: { userPicks: tiedPicks }, UserOsrsRanking: { userOsrsRanking: [] } },
+    );
+    const groupCards = Array.from(container.querySelectorAll(".group-card"));
+    const groupACard = groupCards.find((c) => c.textContent?.includes("Group A"));
+    const pickText = groupACard?.querySelector(".group-pick")?.textContent ?? "";
+    // Should show both teams, not "–"
+    expect(pickText).not.toBe("–");
+    expect(pickText).toContain("Mexico");
+    expect(pickText).toContain("South Korea");
+  });
+
   it("calls onClose when overlay is clicked", async () => {
     const onClose = mock();
     const { container } = await renderWithMocks(
