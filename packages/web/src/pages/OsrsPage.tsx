@@ -62,7 +62,6 @@ export function OsrsPage() {
             <div
               key={team.id}
               className={`osrs-team-card${isPicked ? " osrs-team-card--picked" : ""}`}
-              style={{ borderLeftColor: team.color }}
             >
               <div className="osrs-team-header" style={{ backgroundColor: team.color }}>
                 <span className="osrs-team-name">{team.name}</span>
