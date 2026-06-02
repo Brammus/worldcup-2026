@@ -12,13 +12,20 @@ export const osrsResolvers = {
     },
     myOsrsRanking: async (_: unknown, __: unknown, ctx: GraphQLContext) => {
       if (!ctx.currentUser) return [];
-      const rows = await ctx.db
+      return ctx.db
         .select({ rank: osrsTeamPicks.rank, team: osrsTeams })
         .from(osrsTeamPicks)
         .innerJoin(osrsTeams, eq(osrsTeamPicks.teamId, osrsTeams.id))
         .where(eq(osrsTeamPicks.userId, ctx.currentUser.id))
         .orderBy(osrsTeamPicks.rank);
-      return rows;
+    },
+    userOsrsRanking: async (_: unknown, { userId }: { userId: string }, ctx: GraphQLContext) => {
+      return ctx.db
+        .select({ rank: osrsTeamPicks.rank, team: osrsTeams })
+        .from(osrsTeamPicks)
+        .innerJoin(osrsTeams, eq(osrsTeamPicks.teamId, osrsTeams.id))
+        .where(eq(osrsTeamPicks.userId, userId))
+        .orderBy(osrsTeamPicks.rank);
     },
   },
   Mutation: {

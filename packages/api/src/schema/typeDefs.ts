@@ -10,6 +10,7 @@ export const typeDefs = /* GraphQL */ `
     matchPicks(matchId: ID!): [MatchPick!]!
     osrsTeams: [OsrsTeam!]!
     myOsrsRanking: [OsrsTeamRanking!]!
+    userOsrsRanking(userId: ID!): [OsrsTeamRanking!]!
   }
 
   type MatchPick {

@@ -131,6 +131,15 @@ export const OsrsTeamsQuery = `
   }
 `;
 
+export const UserOsrsRankingQuery = `
+  query UserOsrsRanking($userId: ID!) {
+    userOsrsRanking(userId: $userId) {
+      rank
+      team { id name color }
+    }
+  }
+`;
+
 export const RankOsrsTeamsMutation = `
   mutation RankOsrsTeams($rankings: [OsrsRankingInput!]!) {
     rankOsrsTeams(rankings: $rankings) {

@@ -1,5 +1,5 @@
 import { useQuery } from "urql";
-import { UserPicksQuery } from "../graphql/operations";
+import { UserOsrsRankingQuery, UserPicksQuery } from "../graphql/operations";
 
 type PickMatch = {
   id: string;
@@ -72,13 +72,22 @@ type Props = {
 };
 
 export function UserSummaryModal({ userId, username, onClose }: Props) {
-  const [result] = useQuery<{ userPicks: UserPick[] }>({
+  const [picksResult] = useQuery<{ userPicks: UserPick[] }>({
     query: UserPicksQuery,
     variables: { userId },
   });
+  const [osrsResult] = useQuery<{
+    userOsrsRanking: { rank: number; team: { id: string; name: string; color: string } }[];
+  }>({
+    query: UserOsrsRankingQuery,
+    variables: { userId },
+  });
 
-  const picks = result.data?.userPicks ?? [];
+  const picks = picksResult.data?.userPicks ?? [];
   const predictions = computeGroupPredictions(picks);
+  const osrsRanking = [...(osrsResult.data?.userOsrsRanking ?? [])].sort((a, b) => a.rank - b.rank);
+
+  const fetching = picksResult.fetching || osrsResult.fetching;
 
   return (
     <div
@@ -98,21 +107,41 @@ export function UserSummaryModal({ userId, username, onClose }: Props) {
             ✕
           </button>
         </div>
-        {result.fetching ? (
+        {fetching ? (
           <div className="loading">Loading…</div>
         ) : (
-          <div className="group-grid">
-            {ALL_GROUPS.map((letter) => (
-              <div key={letter} className="group-card">
-                <div className="group-label">Group {letter}</div>
-                {predictions.get(letter) === "–" ? (
-                  <div className="group-pick group-pick-empty">–</div>
-                ) : (
-                  <div className="group-pick">{predictions.get(letter)}</div>
-                )}
-              </div>
-            ))}
-          </div>
+          <>
+            <div className="modal-section-label">⚽ World Cup — group picks</div>
+            <div className="group-grid">
+              {ALL_GROUPS.map((letter) => (
+                <div key={letter} className="group-card">
+                  <div className="group-label">Group {letter}</div>
+                  {predictions.get(letter) === "–" ? (
+                    <div className="group-pick group-pick-empty">–</div>
+                  ) : (
+                    <div className="group-pick">{predictions.get(letter)}</div>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            <div className="modal-section-label">🎮 OSRS ranking</div>
+            {osrsRanking.length === 0 ? (
+              <p className="modal-empty">No OSRS ranking submitted yet.</p>
+            ) : (
+              <ol className="osrs-ranking-list">
+                {osrsRanking.map((entry) => (
+                  <li key={entry.rank} className="osrs-ranking-list-item">
+                    <span
+                      className="osrs-ranking-list-dot"
+                      style={{ backgroundColor: entry.team.color }}
+                    />
+                    {entry.team.name}
+                  </li>
+                ))}
+              </ol>
+            )}
+          </>
         )}
       </div>
     </div>
