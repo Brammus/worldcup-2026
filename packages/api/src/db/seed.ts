@@ -1,5 +1,13 @@
 import type { DB } from "./client";
-import { matches, osrsPlayers, osrsTeams, teams } from "./schema";
+import {
+  matchResults,
+  matches,
+  osrsPlayers,
+  osrsTeamPicks,
+  osrsTeams,
+  picks,
+  teams,
+} from "./schema";
 
 // EDT = UTC-4
 const t = (iso: string) => new Date(iso);
@@ -925,6 +933,15 @@ const KNOCKOUT_MATCHES: KnockoutMatch[] = [
 ];
 
 export async function seed(db: DB) {
+  // Wipe all data in FK-safe order
+  await db.delete(osrsTeamPicks);
+  await db.delete(osrsPlayers);
+  await db.delete(osrsTeams);
+  await db.delete(picks);
+  await db.delete(matchResults);
+  await db.delete(matches);
+  await db.delete(teams);
+
   // 1. Insert teams
   const insertedTeams = await db.insert(teams).values(TEAM_DATA).returning();
   const teamByName = new Map(insertedTeams.map((t) => [t.name, t]));
