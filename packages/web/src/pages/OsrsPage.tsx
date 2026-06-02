@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQuery } from "urql";
 import { NavBar } from "../components/NavBar";
 import { MeQuery, OsrsTeamsQuery, RankOsrsTeamsMutation } from "../graphql/operations";
@@ -48,15 +48,12 @@ export function OsrsPage() {
   const myRanking = teamsResult.data?.myOsrsRanking ?? [];
   const me = meResult.data?.me ?? null;
 
-  // Local draft state — initialised from saved ranking when data loads
-  const [draft, setDraft] = useState<DraftState>(() => buildDraftFromRanking(myRanking));
+  const [draft, setDraft] = useState<DraftState>({});
 
-  // Re-sync draft when server data first arrives (or refetches)
-  const [lastFetchedRanking, setLastFetchedRanking] = useState(myRanking);
-  if (myRanking !== lastFetchedRanking) {
-    setLastFetchedRanking(myRanking);
+  // Sync draft from server whenever data arrives or changes
+  useEffect(() => {
     setDraft(buildDraftFromRanking(myRanking));
-  }
+  }, [myRanking]);
 
   const handleRankButton = (teamId: string, rank: number) => {
     setDraft((prev) => {
