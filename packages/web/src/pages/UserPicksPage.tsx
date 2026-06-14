@@ -10,6 +10,8 @@ type MeData = {
 type PickMatch = {
   id: string;
   round: string;
+  group: string | null;
+  startsAt: string;
   homeTeamLabel: string;
   awayTeamLabel: string;
   result: { homeScore: number; awayScore: number; winnerTeamId: string | null } | null;
@@ -44,7 +46,21 @@ const ROUND_LABELS: Record<string, string> = {
   third_place: "Third Place",
 };
 
-const ROUND_ORDER = ["group", "r32", "r16", "qf", "sf", "final", "third_place"];
+function matchLabel(match: PickMatch): string {
+  if (match.round === "group" && match.group) {
+    return `Group ${match.group}`;
+  }
+  return ROUND_LABELS[match.round] ?? match.round;
+}
+
+function kickoffLabel(startsAt: string): string {
+  return new Date(startsAt).toLocaleString(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
 
 export function UserPicksPage() {
   const { userId } = useParams<{ userId: string }>();
@@ -65,14 +81,10 @@ export function UserPicksPage() {
   const totalPicks = userPicks.length;
   const isMe = me?.id === userId;
 
-  // Group picks by round, preserving order
-  const byRound = new Map<string, Pick[]>();
-  for (const pick of userPicks) {
-    const round = pick.match.round;
-    if (!byRound.has(round)) byRound.set(round, []);
-    (byRound.get(round) as Pick[]).push(pick);
-  }
-  const sortedRounds = ROUND_ORDER.filter((r) => byRound.has(r));
+  // Order picks chronologically by kickoff time (earliest first)
+  const sortedPicks = [...userPicks].sort(
+    (a, b) => new Date(a.match.startsAt).getTime() - new Date(b.match.startsAt).getTime(),
+  );
 
   if (result.fetching && userPicks.length === 0) {
     return <div className="loading">Loading…</div>;
@@ -97,27 +109,24 @@ export function UserPicksPage() {
           </span>
         </div>
       </div>
-      {sortedRounds.length === 0 ? (
+      {sortedPicks.length === 0 ? (
         <div className="picks-empty">No picks yet.</div>
       ) : (
-        sortedRounds.map((round) => (
-          <div key={round} className="round-section">
-            <h2 className="round-heading">{ROUND_LABELS[round] ?? round}</h2>
-            <div className="picks-list">
-              {(byRound.get(round) as Pick[]).map((pick) => (
-                <div key={pick.id} className="pick-row">
-                  <span className="pick-match-label">
-                    {pick.match.homeTeamLabel}
-                    <span className="pick-vs">vs</span>
-                    {pick.match.awayTeamLabel}
-                  </span>
-                  <span className="pick-chosen">{pick.pickedTeam?.name ?? "Draw"}</span>
-                  <PickOutcome pick={pick} />
-                </div>
-              ))}
+        <div className="picks-list">
+          {sortedPicks.map((pick) => (
+            <div key={pick.id} className="pick-row">
+              <span className="pick-group-tag">{matchLabel(pick.match)}</span>
+              <span className="pick-kickoff">{kickoffLabel(pick.match.startsAt)}</span>
+              <span className="pick-match-label">
+                {pick.match.homeTeamLabel}
+                <span className="pick-vs">vs</span>
+                {pick.match.awayTeamLabel}
+              </span>
+              <span className="pick-chosen">{pick.pickedTeam?.name ?? "Draw"}</span>
+              <PickOutcome pick={pick} />
             </div>
-          </div>
-        ))
+          ))}
+        </div>
       )}
     </div>
   );

@@ -61,7 +61,9 @@ export function HomePage() {
     reexecute({ requestPolicy: "network-only" });
   }
 
-  const matches = result.data?.matches ?? [];
+  const matches = [...(result.data?.matches ?? [])].sort(
+    (a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime(),
+  );
   const me = meResult.data?.me ?? null;
 
   return (

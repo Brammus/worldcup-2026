@@ -10,6 +10,7 @@ type MatchResult = { homeScore: number; awayScore: number; winnerTeamId: string 
 type Match = {
   id: string;
   round: string;
+  group?: string | null;
   homeTeamLabel: string;
   awayTeamLabel: string;
   homeTeam: Team;
@@ -78,7 +79,10 @@ export function MatchCard({ match, onPick, onUsernameClick, currentUser }: Props
   return (
     <div className="match-card">
       <div className="match-meta">
-        <span>{kickoff}</span>
+        <span>
+          {match.group && <span className="match-group-tag">Group {match.group}</span>}
+          {kickoff}
+        </span>
         <button
           type="button"
           className={`toggle-picks-btn${expanded ? " expanded" : ""}`}

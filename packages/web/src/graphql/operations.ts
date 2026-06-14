@@ -100,6 +100,7 @@ export const UserPicksQuery = `
         id
         round
         group
+        startsAt
         homeTeamLabel
         awayTeamLabel
         result { homeScore awayScore winnerTeamId }
