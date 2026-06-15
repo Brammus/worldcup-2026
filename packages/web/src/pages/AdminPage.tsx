@@ -129,7 +129,9 @@ export function AdminPage() {
   if (meResult.fetching) return <div>Loading…</div>;
   if (!me?.isAdmin) return <div>Access denied</div>;
 
-  const pending = (matchesResult.data?.matches ?? []).filter((m) => !m.result);
+  const pending = (matchesResult.data?.matches ?? [])
+    .filter((m) => !m.result)
+    .sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime());
 
   const ROUND_LABELS: Record<string, string> = {
     group: "Group Stage",
