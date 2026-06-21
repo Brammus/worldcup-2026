@@ -2,7 +2,7 @@ import { describe, expect, it } from "bun:test";
 import { flushSync } from "react-dom";
 import { Router } from "wouter";
 import { memoryLocation } from "wouter/memory-location";
-import { AdminPage } from "../pages/AdminPage";
+import { AdminPage, deriveOutcome } from "../pages/AdminPage";
 import { renderWithMocks } from "./test-utils";
 
 const pendingMatch = {
@@ -86,5 +86,38 @@ describe("AdminPage", () => {
 
     // Form was submitted — button should still be present (mock returns success)
     expect(container.querySelector("button[type='submit']")).not.toBeNull();
+  });
+
+  it("renders the submit button disabled before any score is entered", async () => {
+    const { container } = await renderWithMocks(withRouter(<AdminPage />), {
+      Me: { me: { id: "u1", username: "admin", isAdmin: true } },
+      Matches: { matches: [pendingMatch] },
+    });
+    const submitBtn = container.querySelector("button[type='submit']") as HTMLButtonElement;
+    expect(submitBtn.disabled).toBe(true);
+  });
+});
+
+describe("deriveOutcome", () => {
+  it("returns no outcome until both scores are filled in", () => {
+    expect(deriveOutcome("", "", true, "home").bothFilled).toBe(false);
+    expect(deriveOutcome("2", "", true, "home").bothFilled).toBe(false);
+    expect(deriveOutcome("2", "1", true, "home").bothFilled).toBe(true);
+  });
+
+  it("derives a home or away win from the score", () => {
+    expect(deriveOutcome("3", "1", true, "home").outcome).toBe("home");
+    expect(deriveOutcome("0", "2", true, "home").outcome).toBe("away");
+  });
+
+  it("treats a level group match as a draw", () => {
+    const r = deriveOutcome("1", "1", true, "home");
+    expect(r.isLevel).toBe(true);
+    expect(r.outcome).toBe("draw");
+  });
+
+  it("decides a level knockout match by the tiebreak selection", () => {
+    expect(deriveOutcome("1", "1", false, "home").outcome).toBe("home");
+    expect(deriveOutcome("1", "1", false, "away").outcome).toBe("away");
   });
 });
