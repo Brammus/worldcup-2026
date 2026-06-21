@@ -22,6 +22,33 @@ type MeData = {
   me: { id: string; username: string; isAdmin: boolean } | null;
 };
 
+export type Outcome = "home" | "away" | "draw" | null;
+
+/**
+ * Derive the match outcome purely from the entered scores.
+ * - Returns `null` until both scores are filled in with valid numbers.
+ * - A higher score wins; a level group match is a draw; a level knockout match
+ *   is decided by the `tiebreak` selection (penalties).
+ */
+export function deriveOutcome(
+  homeScore: string,
+  awayScore: string,
+  isGroup: boolean,
+  tiebreak: "home" | "away",
+): { bothFilled: boolean; isLevel: boolean; outcome: Outcome } {
+  const hs = homeScore === "" ? Number.NaN : Number.parseInt(homeScore, 10);
+  const as = awayScore === "" ? Number.NaN : Number.parseInt(awayScore, 10);
+  const bothFilled = !Number.isNaN(hs) && !Number.isNaN(as);
+  const isLevel = bothFilled && hs === as;
+  let outcome: Outcome = null;
+  if (bothFilled) {
+    if (hs > as) outcome = "home";
+    else if (as > hs) outcome = "away";
+    else outcome = isGroup ? "draw" : tiebreak;
+  }
+  return { bothFilled, isLevel, outcome };
+}
+
 function MatchResultForm({
   match,
   onDone,
@@ -31,29 +58,38 @@ function MatchResultForm({
 }) {
   const [homeScore, setHomeScore] = useState("");
   const [awayScore, setAwayScore] = useState("");
-  const [winner, setWinner] = useState<"home" | "away" | "draw">("home");
-  const [, setResult] = useMutation(SetResultMutation);
+  // For knockout matches that end level, the admin picks who advanced (penalties).
+  const [tiebreak, setTiebreak] = useState<"home" | "away">("home");
+  const [{ fetching }, setResult] = useMutation(SetResultMutation);
   const [error, setError] = useState<string | null>(null);
 
   const isGroup = match.round === "group";
 
+  const { bothFilled, isLevel, outcome } = deriveOutcome(homeScore, awayScore, isGroup, tiebreak);
+
+  const outcomeLabel =
+    outcome === "home"
+      ? `${match.homeTeamLabel} win`
+      : outcome === "away"
+        ? `${match.awayTeamLabel} win`
+        : outcome === "draw"
+          ? "Draw"
+          : null;
+
+  const canSubmit = bothFilled && !fetching;
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const hs = Number.parseInt(homeScore, 10);
-    const as = Number.parseInt(awayScore, 10);
-    if (Number.isNaN(hs) || Number.isNaN(as)) {
-      setError("Scores must be numbers");
-      return;
-    }
+    if (!bothFilled) return;
     let winnerId: string | null = null;
-    if (winner === "home") winnerId = match.homeTeam?.id ?? null;
-    else if (winner === "away") winnerId = match.awayTeam?.id ?? null;
+    if (outcome === "home") winnerId = match.homeTeam?.id ?? null;
+    else if (outcome === "away") winnerId = match.awayTeam?.id ?? null;
 
     const res = await setResult({
       matchId: match.id,
       winnerId,
-      homeScore: hs,
-      awayScore: as,
+      homeScore: Number.parseInt(homeScore, 10),
+      awayScore: Number.parseInt(awayScore, 10),
     });
     if (res.error) {
       setError(res.error.message);
@@ -75,6 +111,7 @@ function MatchResultForm({
               value={homeScore}
               onChange={(e) => setHomeScore(e.target.value)}
               min={0}
+              disabled={fetching}
             />
           </label>
         </div>
@@ -89,27 +126,34 @@ function MatchResultForm({
               value={awayScore}
               onChange={(e) => setAwayScore(e.target.value)}
               min={0}
+              disabled={fetching}
             />
           </label>
         </div>
       </div>
       <div className="result-bottom-row">
         <div className="winner-field">
-          <label className="winner-label">
-            Winner
-            <select
-              className="winner-select"
-              value={winner}
-              onChange={(e) => setWinner(e.target.value as "home" | "away" | "draw")}
-            >
-              <option value="home">{match.homeTeamLabel}</option>
-              <option value="away">{match.awayTeamLabel}</option>
-              {isGroup && <option value="draw">Draw</option>}
-            </select>
-          </label>
+          {isLevel && !isGroup ? (
+            <label className="winner-label">
+              Advances (penalties)
+              <select
+                className="winner-select"
+                value={tiebreak}
+                onChange={(e) => setTiebreak(e.target.value as "home" | "away")}
+                disabled={fetching}
+              >
+                <option value="home">{match.homeTeamLabel}</option>
+                <option value="away">{match.awayTeamLabel}</option>
+              </select>
+            </label>
+          ) : (
+            <span className={`result-outcome ${outcome ? `result-outcome-${outcome}` : ""}`}>
+              {outcomeLabel ?? "Enter score"}
+            </span>
+          )}
         </div>
-        <button type="submit" className="result-submit-btn">
-          Save result
+        <button type="submit" className="result-submit-btn" disabled={!canSubmit}>
+          {fetching ? "Saving…" : "Save result"}
         </button>
       </div>
       {error && <div className="error-banner">{error}</div>}
@@ -124,10 +168,26 @@ export function AdminPage() {
     requestPolicy: "cache-and-network",
   });
 
+  const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
+
   const me = meResult.data?.me;
 
   if (meResult.fetching) return <div>Loading…</div>;
   if (!me?.isAdmin) return <div>Access denied</div>;
+
+  // Play a brief "saved" animation on the card, then refetch — which drops the
+  // now-resolved match from the pending list.
+  function handleSaved(id: string) {
+    setSavedIds((prev) => new Set(prev).add(id));
+    setTimeout(() => {
+      reexecute({ requestPolicy: "network-only" });
+      setSavedIds((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+    }, 650);
+  }
 
   const pending = (matchesResult.data?.matches ?? [])
     .filter((m) => !m.result)
@@ -155,7 +215,11 @@ export function AdminPage() {
       ) : (
         <div className="admin-match-list">
           {pending.map((match) => (
-            <div key={match.id} className="admin-match-card">
+            <div
+              key={match.id}
+              className={`admin-match-card${savedIds.has(match.id) ? " admin-match-card-saved" : ""}`}
+            >
+              {savedIds.has(match.id) && <div className="admin-saved-overlay">✓ Saved</div>}
               <div className="admin-match-header">
                 <span className="admin-round-badge">
                   {ROUND_LABELS[match.round] ?? match.round}
@@ -174,10 +238,7 @@ export function AdminPage() {
                 <span className="admin-vs">vs</span>
                 {match.awayTeamLabel}
               </div>
-              <MatchResultForm
-                match={match}
-                onDone={() => reexecute({ requestPolicy: "network-only" })}
-              />
+              <MatchResultForm match={match} onDone={() => handleSaved(match.id)} />
             </div>
           ))}
         </div>

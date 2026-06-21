@@ -1000,11 +1000,65 @@ a:hover {
 }
 
 .admin-match-card {
+  position: relative;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: 12px;
   padding: 16px 20px;
   box-shadow: var(--shadow);
+}
+
+.admin-match-card-saved {
+  animation: admin-card-saved 0.65s ease forwards;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.admin-saved-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #15803d;
+  background: rgba(34, 197, 94, 0.14);
+  border-radius: 12px;
+  z-index: 1;
+  animation: admin-saved-pop 0.3s ease;
+}
+
+@keyframes admin-saved-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes admin-card-saved {
+  0% {
+    border-color: #22c55e;
+  }
+  60% {
+    opacity: 1;
+    max-height: 400px;
+    margin-bottom: 0;
+    transform: none;
+  }
+  100% {
+    opacity: 0;
+    max-height: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    margin-bottom: -14px;
+    transform: translateY(-6px);
+  }
 }
 
 .admin-match-header {
@@ -1160,8 +1214,42 @@ a:hover {
   flex-shrink: 0;
 }
 
-.result-submit-btn:hover {
+.result-submit-btn:hover:not(:disabled) {
   background: var(--color-primary-hover);
+}
+
+.result-submit-btn:disabled {
+  background: var(--color-border);
+  color: var(--color-text-muted);
+  cursor: not-allowed;
+}
+
+.winner-select:disabled,
+.score-input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.result-outcome {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  background: var(--color-surface-alt, rgba(0, 0, 0, 0.04));
+  color: var(--color-text-muted);
+}
+
+.result-outcome-home,
+.result-outcome-away {
+  background: rgba(37, 99, 235, 0.12);
+  color: var(--color-primary);
+}
+
+.result-outcome-draw {
+  background: rgba(234, 179, 8, 0.15);
+  color: #a16207;
 }
 
 /* ── OSRS page ────────────────────────────────────────────────── */
