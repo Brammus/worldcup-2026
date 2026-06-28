@@ -41,6 +41,7 @@ export const typeDefs = /* GraphQL */ `
     setPick(matchId: ID!, teamId: ID): Pick!
     setResult(matchId: ID!, winnerId: ID, homeScore: Int!, awayScore: Int!): Match!
     setMatchTeams(matchId: ID!, homeTeamId: ID, awayTeamId: ID): Match!
+    setMatchKickoff(matchId: ID!, startsAt: String!): Match!
     recomputeBracket: Int!
   }
 

@@ -1,6 +1,19 @@
 import { useState } from "react";
 import { useMutation, useQuery } from "urql";
-import { MatchesQuery, SetMatchTeamsMutation, TeamsQuery } from "../graphql/operations";
+import {
+  MatchesQuery,
+  SetMatchKickoffMutation,
+  SetMatchTeamsMutation,
+  TeamsQuery,
+} from "../graphql/operations";
+
+// Convert an ISO timestamp to the "YYYY-MM-DDTHH:mm" value a datetime-local
+// input expects, in the browser's local timezone.
+function toLocalInput(iso: string): string {
+  const d = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
 
 type Team = { id: string; name: string; group: string };
 
@@ -32,7 +45,14 @@ export function KnockoutTeamEditor() {
     requestPolicy: "cache-and-network",
   });
   const [, setMatchTeams] = useMutation(SetMatchTeamsMutation);
+  const [, setMatchKickoff] = useMutation(SetMatchKickoffMutation);
   const [savedId, setSavedId] = useState<string | null>(null);
+
+  function flashSaved(id: string) {
+    setSavedId(id);
+    refetch({ requestPolicy: "network-only" });
+    setTimeout(() => setSavedId((cur) => (cur === id ? null : cur)), 1500);
+  }
 
   const teams = [...(teamsResult.data?.teams ?? [])].sort(
     (a, b) => a.group.localeCompare(b.group) || a.name.localeCompare(b.name),
@@ -50,11 +70,14 @@ export function KnockoutTeamEditor() {
     const homeTeamId = side === "home" ? teamId || null : (match.homeTeam?.id ?? null);
     const awayTeamId = side === "away" ? teamId || null : (match.awayTeam?.id ?? null);
     const res = await setMatchTeams({ matchId: match.id, homeTeamId, awayTeamId });
-    if (!res.error) {
-      setSavedId(match.id);
-      refetch({ requestPolicy: "network-only" });
-      setTimeout(() => setSavedId((cur) => (cur === match.id ? null : cur)), 1500);
-    }
+    if (!res.error) flashSaved(match.id);
+  }
+
+  async function handleKickoff(match: KnockoutMatch, localValue: string) {
+    if (!localValue) return;
+    const startsAt = new Date(localValue).toISOString();
+    const res = await setMatchKickoff({ matchId: match.id, startsAt });
+    if (!res.error) flashSaved(match.id);
   }
 
   function teamSelect(match: KnockoutMatch, side: "home" | "away") {
@@ -96,15 +119,13 @@ export function KnockoutTeamEditor() {
           <h3 className="kt-round-title">{ROUND_LABELS[group.round] ?? group.round}</h3>
           {group.matches.map((match) => (
             <div key={match.id} className="kt-match">
-              <span className="kt-kickoff">
-                {new Date(match.startsAt).toLocaleString(undefined, {
-                  weekday: "short",
-                  month: "short",
-                  day: "numeric",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
-              </span>
+              <input
+                type="datetime-local"
+                className="kt-kickoff-input"
+                aria-label={`${ROUND_LABELS[match.round]} kickoff`}
+                value={toLocalInput(match.startsAt)}
+                onChange={(e) => handleKickoff(match, e.target.value)}
+              />
               <div className="kt-row">
                 {teamSelect(match, "home")}
                 <span className="kt-vs">vs</span>

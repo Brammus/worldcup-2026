@@ -726,3 +726,60 @@ describe("Mutation.setMatchTeams", () => {
     ).rejects.toThrow("Forbidden");
   });
 });
+
+describe("Mutation.setMatchKickoff", () => {
+  it("updates the kickoff time", async () => {
+    const [m] = await db
+      .insert(matches)
+      .values({
+        round: "r32",
+        homeTeamLabel: "1st Group A",
+        awayTeamLabel: "2nd Group B",
+        venue: "Stadium",
+        startsAt: FUTURE,
+      })
+      .returning({ id: matches.id });
+
+    const adminCtx = makeCtx({
+      currentUser: { id: adminUserId, username: "admin", isAdmin: true },
+    });
+    const newTime = "2026-07-02T19:00:00.000Z";
+    await resolvers.Mutation.setMatchKickoff(
+      undefined,
+      { matchId: m?.id ?? "", startsAt: newTime },
+      adminCtx,
+    );
+
+    const [row] = await db
+      .select()
+      .from(matches)
+      .where(eq(matches.id, m?.id ?? ""));
+    expect(row?.startsAt.toISOString()).toBe(newTime);
+  });
+
+  it("rejects an invalid date", async () => {
+    const adminCtx = makeCtx({
+      currentUser: { id: adminUserId, username: "admin", isAdmin: true },
+    });
+    await expect(
+      resolvers.Mutation.setMatchKickoff(
+        undefined,
+        { matchId: "x", startsAt: "not-a-date" },
+        adminCtx,
+      ),
+    ).rejects.toThrow("Invalid date");
+  });
+
+  it("throws Forbidden for non-admins", async () => {
+    const ctx = makeCtx({
+      currentUser: { id: regularUserId, username: "regular", isAdmin: false },
+    });
+    await expect(
+      resolvers.Mutation.setMatchKickoff(
+        undefined,
+        { matchId: "x", startsAt: "2026-07-02T19:00:00.000Z" },
+        ctx,
+      ),
+    ).rejects.toThrow("Forbidden");
+  });
+});

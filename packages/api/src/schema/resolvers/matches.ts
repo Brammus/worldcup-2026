@@ -98,6 +98,26 @@ export const matchesResolvers = {
       return updated;
     },
 
+    // Update a match's kickoff time. `startsAt` is an ISO 8601 timestamp.
+    setMatchKickoff: async (
+      _: unknown,
+      { matchId, startsAt }: { matchId: string; startsAt: string },
+      ctx: GraphQLContext,
+    ) => {
+      if (!ctx.currentUser?.isAdmin) throw new GraphQLError("Forbidden");
+
+      const date = new Date(startsAt);
+      if (Number.isNaN(date.getTime())) throw new GraphQLError("Invalid date");
+
+      const [match] = await ctx.db.select().from(matches).where(eq(matches.id, matchId));
+      if (!match) throw new GraphQLError("Match not found");
+
+      await ctx.db.update(matches).set({ startsAt: date }).where(eq(matches.id, matchId));
+
+      const [updated] = await ctx.db.select().from(matches).where(eq(matches.id, matchId));
+      return updated;
+    },
+
     // Re-run group → R32 propagation (1st/2nd of each group + best thirds) over
     // results that are already recorded. Idempotent; used to backfill brackets
     // whose results were entered before propagation existed. Returns the number

@@ -1005,11 +1005,22 @@ a:hover {
   border-bottom: none;
 }
 
-.kt-kickoff {
+.kt-kickoff-input {
   display: block;
+  margin-bottom: 6px;
+  padding: 4px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
   font-size: 0.75rem;
   color: var(--color-text-muted);
-  margin-bottom: 4px;
+  background: var(--color-surface);
+  cursor: pointer;
+}
+
+.kt-kickoff-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
 }
 
 .kt-row {

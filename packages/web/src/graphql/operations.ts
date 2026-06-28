@@ -87,6 +87,15 @@ export const SetMatchTeamsMutation = `
   }
 `;
 
+export const SetMatchKickoffMutation = `
+  mutation SetMatchKickoff($matchId: ID!, $startsAt: String!) {
+    setMatchKickoff(matchId: $matchId, startsAt: $startsAt) {
+      id
+      startsAt
+    }
+  }
+`;
+
 export const SetPickMutation = `
   mutation SetPick($matchId: ID!, $teamId: ID) {
     setPick(matchId: $matchId, teamId: $teamId) {
