@@ -95,11 +95,22 @@ export function KnockoutTeamEditor() {
         <div key={group.round} className="kt-round">
           <h3 className="kt-round-title">{ROUND_LABELS[group.round] ?? group.round}</h3>
           {group.matches.map((match) => (
-            <div key={match.id} className="kt-row">
-              {teamSelect(match, "home")}
-              <span className="kt-vs">vs</span>
-              {teamSelect(match, "away")}
-              {savedId === match.id && <span className="kt-saved">✓</span>}
+            <div key={match.id} className="kt-match">
+              <span className="kt-kickoff">
+                {new Date(match.startsAt).toLocaleString(undefined, {
+                  weekday: "short",
+                  month: "short",
+                  day: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </span>
+              <div className="kt-row">
+                {teamSelect(match, "home")}
+                <span className="kt-vs">vs</span>
+                {teamSelect(match, "away")}
+                {savedId === match.id && <span className="kt-saved">✓</span>}
+              </div>
             </div>
           ))}
         </div>
