@@ -501,3 +501,118 @@ describe("Bracket propagation: knockout → next round", () => {
     expect(r16After?.homeTeamId).toBe(teamA);
   });
 });
+
+// ── Bracket propagation: best third-placed teams ─────────────────────────────
+
+describe("Mutation.recomputeBracket (best thirds)", () => {
+  async function makeGroup(letter: string, prefix: string) {
+    const [a] = await db
+      .insert(teams)
+      .values({ name: `${prefix}1`, groupLetter: letter })
+      .returning({ id: teams.id });
+    const [b] = await db
+      .insert(teams)
+      .values({ name: `${prefix}2`, groupLetter: letter })
+      .returning({ id: teams.id });
+    const [c] = await db
+      .insert(teams)
+      .values({ name: `${prefix}3`, groupLetter: letter })
+      .returning({ id: teams.id });
+    const ids = [a?.id ?? "", b?.id ?? "", c?.id ?? ""] as const;
+
+    // a beats b and c, b beats c → a 1st, b 2nd, c 3rd
+    const pairs: [string, string, number, number, string | null][] = [
+      [ids[0], ids[1], 1, 0, ids[0]],
+      [ids[0], ids[2], 1, 0, ids[0]],
+      [ids[1], ids[2], 1, 0, ids[1]],
+    ];
+    for (const [home, away, hs, as, winner] of pairs) {
+      const [m] = await db
+        .insert(matches)
+        .values({
+          round: "group",
+          groupLetter: letter,
+          homeTeamId: home,
+          awayTeamId: away,
+          homeTeamLabel: "x",
+          awayTeamLabel: "y",
+          venue: "Stadium",
+          startsAt: FUTURE,
+        })
+        .returning({ id: matches.id });
+      await db
+        .insert(matchResults)
+        .values({ matchId: m?.id ?? "", winnerTeamId: winner, homeScore: hs, awayScore: as });
+    }
+    return ids;
+  }
+
+  it("fills Best 3rd slots from the qualifying third-placed teams", async () => {
+    await db.delete(picks);
+    await db.delete(matchResults);
+    await db.delete(matches);
+    await db.delete(teams);
+
+    const groupA = await makeGroup("A", "Alpha");
+    const groupB = await makeGroup("B", "Beta");
+
+    // Two R32 slots, both eligible for the thirds of groups A and B
+    const base = new Date(Date.now() + 3_600_000);
+    const [s1] = await db
+      .insert(matches)
+      .values({
+        round: "r32",
+        homeTeamLabel: "1st Group A",
+        awayTeamLabel: "Best 3rd (A/B)",
+        venue: "Stadium",
+        startsAt: new Date(base.getTime()),
+      })
+      .returning({ id: matches.id });
+    const [s2] = await db
+      .insert(matches)
+      .values({
+        round: "r32",
+        homeTeamLabel: "1st Group B",
+        awayTeamLabel: "Best 3rd (A/B)",
+        venue: "Stadium",
+        startsAt: new Date(base.getTime() + 1000),
+      })
+      .returning({ id: matches.id });
+
+    const adminCtx = makeCtx({
+      currentUser: { id: adminUserId, username: "admin", isAdmin: true },
+    });
+    const filled = await resolvers.Mutation.recomputeBracket(undefined, {}, adminCtx);
+
+    const [slot1] = await db
+      .select()
+      .from(matches)
+      .where(eq(matches.id, s1?.id ?? ""));
+    const [slot2] = await db
+      .select()
+      .from(matches)
+      .where(eq(matches.id, s2?.id ?? ""));
+
+    // 1st-place teams propagated as well
+    expect(slot1?.homeTeamId).toBe(groupA[0]);
+    expect(slot2?.homeTeamId).toBe(groupB[0]);
+
+    // Best-3rd away slots filled with the two groups' third-placed teams, distinct
+    const thirdIds = [groupA[2], groupB[2]];
+    expect(thirdIds).toContain(slot1?.awayTeamId ?? "");
+    expect(thirdIds).toContain(slot2?.awayTeamId ?? "");
+    expect(slot1?.awayTeamId).not.toBe(slot2?.awayTeamId);
+
+    // 4 slots filled total (2 home + 2 away)
+    expect(filled).toBe(4);
+  });
+
+  it("throws Forbidden for non-admins", async () => {
+    const ctx = makeCtx({
+      currentUser: { id: regularUserId, username: "regular", isAdmin: false },
+    });
+    await expect(resolvers.Mutation.recomputeBracket(undefined, {}, ctx)).rejects.toThrow(
+      "Forbidden",
+    );
+  });
+});

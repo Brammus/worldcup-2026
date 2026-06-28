@@ -107,7 +107,7 @@ export function MatchCard({ match, onPick, onUsernameClick, currentUser }: Props
         </button>
       </div>
       <div className="match-teams">
-        {pickBtn(match.homeTeamLabel, homeId)}
+        {pickBtn(match.homeTeam?.name ?? match.homeTeamLabel, homeId)}
         {result ? (
           <span className="score">
             {result.homeScore} – {result.awayScore}
@@ -117,7 +117,7 @@ export function MatchCard({ match, onPick, onUsernameClick, currentUser }: Props
         ) : (
           <span className="vs">vs</span>
         )}
-        {pickBtn(match.awayTeamLabel, awayId)}
+        {pickBtn(match.awayTeam?.name ?? match.awayTeamLabel, awayId)}
       </div>
       {result && hasPick && (
         <span className="pick-result">

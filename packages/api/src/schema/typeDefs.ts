@@ -32,6 +32,7 @@ export const typeDefs = /* GraphQL */ `
     logout: Boolean!
     setPick(matchId: ID!, teamId: ID): Pick!
     setResult(matchId: ID!, winnerId: ID, homeScore: Int!, awayScore: Int!): Match!
+    recomputeBracket: Int!
     rankOsrsTeams(rankings: [OsrsRankingInput!]!): [OsrsTeamRanking!]!
   }
 

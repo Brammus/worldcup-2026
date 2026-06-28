@@ -46,6 +46,37 @@ describe("MatchCard", () => {
     }
   });
 
+  it("prefers the resolved team name over the placeholder label", () => {
+    // Knockout slot whose placeholder ("1st Group A") has been resolved to a team
+    const match = {
+      ...baseMatch,
+      round: "r32",
+      homeTeamLabel: "1st Group A",
+      awayTeamLabel: "2nd Group B",
+      homeTeam: { id: "team-1", name: "Brazil", group: "C" },
+      awayTeam: { id: "team-2", name: "Morocco", group: "C" },
+    };
+    const { container } = render(createElement(MatchCard, { match, onPick: mock() }));
+    expect(container.textContent).toContain("Brazil");
+    expect(container.textContent).toContain("Morocco");
+    expect(container.textContent).not.toContain("1st Group A");
+    expect(container.textContent).not.toContain("2nd Group B");
+  });
+
+  it("falls back to the placeholder label when the team is unresolved", () => {
+    const match = {
+      ...baseMatch,
+      round: "r32",
+      homeTeam: null,
+      awayTeam: null,
+      homeTeamLabel: "Best 3rd (A/B/H/K/L)",
+      awayTeamLabel: "1st Group G",
+    };
+    const { container } = render(createElement(MatchCard, { match, onPick: mock() }));
+    expect(container.textContent).toContain("Best 3rd (A/B/H/K/L)");
+    expect(container.textContent).toContain("1st Group G");
+  });
+
   it("renders TBD labels and disabled buttons when no teams assigned", () => {
     const match = {
       ...baseMatch,

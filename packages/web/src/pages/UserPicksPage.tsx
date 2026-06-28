@@ -14,6 +14,8 @@ type PickMatch = {
   startsAt: string;
   homeTeamLabel: string;
   awayTeamLabel: string;
+  homeTeam: { id: string; name: string; group: string } | null;
+  awayTeam: { id: string; name: string; group: string } | null;
   result: { homeScore: number; awayScore: number; winnerTeamId: string | null } | null;
 };
 
@@ -118,9 +120,9 @@ export function UserPicksPage() {
               <span className="pick-group-tag">{matchLabel(pick.match)}</span>
               <span className="pick-kickoff">{kickoffLabel(pick.match.startsAt)}</span>
               <span className="pick-match-label">
-                {pick.match.homeTeamLabel}
+                {pick.match.homeTeam?.name ?? pick.match.homeTeamLabel}
                 <span className="pick-vs">vs</span>
-                {pick.match.awayTeamLabel}
+                {pick.match.awayTeam?.name ?? pick.match.awayTeamLabel}
               </span>
               <span className="pick-chosen">{pick.pickedTeam?.name ?? "Draw"}</span>
               <PickOutcome pick={pick} />

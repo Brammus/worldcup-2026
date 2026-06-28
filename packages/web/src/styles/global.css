@@ -983,6 +983,41 @@ a:hover {
   color: var(--color-text-muted);
 }
 
+.admin-actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.admin-recompute-btn {
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.admin-recompute-btn:hover:not(:disabled) {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.admin-recompute-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.admin-recompute-msg {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+}
+
 .admin-all-done {
   background: #f0fdf4;
   border: 1px solid #bbf7d0;

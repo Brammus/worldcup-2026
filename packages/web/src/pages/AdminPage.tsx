@@ -1,7 +1,12 @@
 import { useState } from "react";
 import { useMutation, useQuery } from "urql";
 import { NavBar } from "../components/NavBar";
-import { MatchesQuery, MeQuery, SetResultMutation } from "../graphql/operations";
+import {
+  MatchesQuery,
+  MeQuery,
+  RecomputeBracketMutation,
+  SetResultMutation,
+} from "../graphql/operations";
 
 type MatchResult = { homeScore: number; awayScore: number; winnerTeamId: string | null } | null;
 
@@ -169,11 +174,28 @@ export function AdminPage() {
   });
 
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
+  const [{ fetching: recomputing }, recompute] = useMutation<{ recomputeBracket: number }>(
+    RecomputeBracketMutation,
+  );
+  const [recomputeMsg, setRecomputeMsg] = useState<string | null>(null);
 
   const me = meResult.data?.me;
 
   if (meResult.fetching) return <div>Loading…</div>;
   if (!me?.isAdmin) return <div>Access denied</div>;
+
+  async function handleRecompute() {
+    setRecomputeMsg(null);
+    const res = await recompute({});
+    if (res.error) {
+      setRecomputeMsg(`Error: ${res.error.message}`);
+    } else {
+      setRecomputeMsg(
+        `✓ Bracket recomputed — ${res.data?.recomputeBracket ?? 0} R32 slots filled.`,
+      );
+      reexecute({ requestPolicy: "network-only" });
+    }
+  }
 
   // Play a brief "saved" animation on the card, then refetch — which drops the
   // now-resolved match from the pending list.
@@ -209,6 +231,18 @@ export function AdminPage() {
       <div className="admin-header">
         <h1>🛠 Admin</h1>
         <span className="admin-subtitle">Record match results</span>
+        <div className="admin-actions">
+          <button
+            type="button"
+            className="admin-recompute-btn"
+            onClick={handleRecompute}
+            disabled={recomputing}
+            title="Re-resolve all R32 teams (group winners/runners-up + best thirds) from recorded results"
+          >
+            {recomputing ? "Recomputing…" : "↻ Recompute bracket"}
+          </button>
+          {recomputeMsg && <span className="admin-recompute-msg">{recomputeMsg}</span>}
+        </div>
       </div>
       {pending.length === 0 ? (
         <div className="admin-all-done">✅ All results recorded.</div>
