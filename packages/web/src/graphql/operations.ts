@@ -73,6 +73,20 @@ export const RecomputeBracketMutation = `
   }
 `;
 
+export const PreviewBracketQuery = `
+  query PreviewBracket {
+    previewBracket {
+      matchId
+      round
+      startsAt
+      homeLabel
+      awayLabel
+      homeName
+      awayName
+    }
+  }
+`;
+
 export const SetPickMutation = `
   mutation SetPick($matchId: ID!, $teamId: ID) {
     setPick(matchId: $matchId, teamId: $teamId) {

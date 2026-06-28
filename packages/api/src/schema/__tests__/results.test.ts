@@ -615,4 +615,50 @@ describe("Mutation.recomputeBracket (best thirds)", () => {
       "Forbidden",
     );
   });
+
+  it("previewBracket resolves names without writing to the DB", async () => {
+    await db.delete(picks);
+    await db.delete(matchResults);
+    await db.delete(matches);
+    await db.delete(teams);
+
+    const groupA = await makeGroup("A", "Alpha");
+    await makeGroup("B", "Beta");
+
+    const [s1] = await db
+      .insert(matches)
+      .values({
+        round: "r32",
+        homeTeamLabel: "1st Group A",
+        awayTeamLabel: "Best 3rd (A/B)",
+        venue: "Stadium",
+        startsAt: new Date(Date.now() + 3_600_000),
+      })
+      .returning({ id: matches.id });
+
+    const adminCtx = makeCtx({
+      currentUser: { id: adminUserId, username: "admin", isAdmin: true },
+    });
+    const preview = await resolvers.Query.previewBracket(undefined, {}, adminCtx);
+
+    const slot = preview.find((p) => p.matchId === s1?.id);
+    expect(slot?.homeName).toBe("Alpha1"); // 1st of group A
+    expect(slot?.awayName).toBe("Alpha3"); // best third (A before B on name tiebreak)
+
+    // Nothing was written — the slot's team ids are still null
+    const [row] = await db
+      .select()
+      .from(matches)
+      .where(eq(matches.id, s1?.id ?? ""));
+    expect(row?.homeTeamId).toBeNull();
+    expect(row?.awayTeamId).toBeNull();
+    expect(groupA[0]).toBeTruthy();
+  });
+
+  it("previewBracket throws Forbidden for non-admins", async () => {
+    const ctx = makeCtx({
+      currentUser: { id: regularUserId, username: "regular", isAdmin: false },
+    });
+    await expect(resolvers.Query.previewBracket(undefined, {}, ctx)).rejects.toThrow("Forbidden");
+  });
 });

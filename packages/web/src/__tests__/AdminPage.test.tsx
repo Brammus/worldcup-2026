@@ -96,6 +96,42 @@ describe("AdminPage", () => {
     const submitBtn = container.querySelector("button[type='submit']") as HTMLButtonElement;
     expect(submitBtn.disabled).toBe(true);
   });
+
+  it("opens a read-only bracket preview before saving", async () => {
+    const { container } = await renderWithMocks(withRouter(<AdminPage />), {
+      Me: { me: { id: "u1", username: "admin", isAdmin: true } },
+      Matches: { matches: [pendingMatch] },
+      PreviewBracket: {
+        previewBracket: [
+          {
+            matchId: "r1",
+            round: "r32",
+            startsAt: new Date().toISOString(),
+            homeLabel: "1st Group A",
+            awayLabel: "Best 3rd (A/B)",
+            homeName: "Brazil",
+            awayName: "Morocco",
+          },
+        ],
+      },
+    });
+
+    // No modal until the button is clicked
+    expect(container.querySelector(".preview-modal")).toBeNull();
+
+    const recomputeBtn = [...container.querySelectorAll("button")].find((b) =>
+      b.textContent?.includes("Recompute bracket"),
+    ) as HTMLButtonElement;
+    flushSync(() => recomputeBtn.click());
+    await Promise.resolve();
+    flushSync(() => {});
+
+    // Modal shows the resolved names (not just the placeholder labels) and a confirm action
+    expect(container.querySelector(".preview-modal")).not.toBeNull();
+    expect(container.textContent).toContain("Brazil");
+    expect(container.textContent).toContain("Morocco");
+    expect(container.textContent).toContain("Confirm & save");
+  });
 });
 
 describe("deriveOutcome", () => {

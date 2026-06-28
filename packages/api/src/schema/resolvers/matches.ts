@@ -30,6 +30,14 @@ export const matchesResolvers = {
             .where(conditions.length === 1 ? conditions[0] : and(...conditions))
         : ctx.db.select().from(matches);
     },
+
+    // Read-only dry run of recomputeBracket: returns each R32 matchup with the
+    // team names it WOULD resolve to, without writing anything. Powers the
+    // admin "preview before confirm" flow.
+    previewBracket: async (_: unknown, __: unknown, ctx: GraphQLContext) => {
+      if (!ctx.currentUser?.isAdmin) throw new GraphQLError("Forbidden");
+      return resolveR32(ctx.db);
+    },
   },
 
   Mutation: {
@@ -280,6 +288,87 @@ async function propagateBestThirds(db: DB) {
     const set = slot.side === "home" ? { homeTeamId: teamId } : { awayTeamId: teamId };
     await db.update(matches).set(set).where(eq(matches.id, slot.id));
   }
+}
+
+// Read-only resolution of the R32 bracket from recorded results: the same
+// computation propagation performs, but it returns the planned matchups instead
+// of writing them. Unresolved slots come back with a null name.
+async function resolveR32(db: DB) {
+  const allTeams = await db.select().from(teams);
+  const teamName: Record<string, string> = {};
+  for (const t of allTeams) teamName[t.id] = t.name;
+
+  const groupMatches = await db.select().from(matches).where(eq(matches.round, "group"));
+  const letters = [
+    ...new Set(groupMatches.map((m) => m.groupLetter).filter((l): l is string => Boolean(l))),
+  ];
+
+  const standingsByGroup: Record<string, Standing[]> = {};
+  for (const letter of letters) {
+    const standings = await groupStandings(db, letter);
+    if (standings) standingsByGroup[letter] = standings;
+  }
+
+  const thirds: (Standing & { group: string })[] = [];
+  for (const letter of Object.keys(standingsByGroup)) {
+    const third = standingsByGroup[letter]?.[2];
+    if (third) thirds.push({ ...third, group: letter });
+  }
+  const qualified = thirds.sort(compareStandings).slice(0, 8);
+  const groupToTeam: Record<string, string> = {};
+  for (const t of qualified) groupToTeam[t.group] = t.teamId;
+
+  const r32 = await db
+    .select()
+    .from(matches)
+    .where(eq(matches.round, "r32"))
+    .orderBy(asc(matches.startsAt));
+
+  const slots = r32
+    .map((m) => {
+      const side = m.homeTeamLabel.startsWith("Best 3rd")
+        ? ("home" as const)
+        : m.awayTeamLabel.startsWith("Best 3rd")
+          ? ("away" as const)
+          : null;
+      if (!side) return null;
+      const label = side === "home" ? m.homeTeamLabel : m.awayTeamLabel;
+      return { id: m.id, eligible: parseEligibleGroups(label) };
+    })
+    .filter((s): s is { id: string; eligible: string[] } => s !== null);
+  const thirdAllocation =
+    allocateThirds(
+      slots,
+      qualified.map((t) => t.group),
+    ) ?? {};
+
+  const resolveSide = (
+    m: (typeof r32)[number],
+    side: "home" | "away",
+    label: string,
+  ): string | null => {
+    const first = label.match(/^1st Group ([A-L])$/);
+    if (first?.[1]) return standingsByGroup[first[1]]?.[0]?.name ?? null;
+    const second = label.match(/^2nd Group ([A-L])$/);
+    if (second?.[1]) return standingsByGroup[second[1]]?.[1]?.name ?? null;
+    if (label.startsWith("Best 3rd")) {
+      const group = thirdAllocation[m.id];
+      const teamId = group ? groupToTeam[group] : undefined;
+      return teamId ? (teamName[teamId] ?? null) : null;
+    }
+    const storedId = side === "home" ? m.homeTeamId : m.awayTeamId;
+    return storedId ? (teamName[storedId] ?? null) : null;
+  };
+
+  return r32.map((m) => ({
+    matchId: m.id,
+    round: m.round,
+    startsAt: m.startsAt.toISOString(),
+    homeLabel: m.homeTeamLabel,
+    awayLabel: m.awayTeamLabel,
+    homeName: resolveSide(m, "home", m.homeTeamLabel),
+    awayName: resolveSide(m, "away", m.awayTeamLabel),
+  }));
 }
 
 async function propagateKnockout(

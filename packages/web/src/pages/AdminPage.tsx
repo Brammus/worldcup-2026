@@ -4,6 +4,7 @@ import { NavBar } from "../components/NavBar";
 import {
   MatchesQuery,
   MeQuery,
+  PreviewBracketQuery,
   RecomputeBracketMutation,
   SetResultMutation,
 } from "../graphql/operations";
@@ -166,6 +167,116 @@ function MatchResultForm({
   );
 }
 
+type BracketSlot = {
+  matchId: string;
+  round: string;
+  startsAt: string;
+  homeLabel: string;
+  awayLabel: string;
+  homeName: string | null;
+  awayName: string | null;
+};
+
+function SlotTeam({ name, label }: { name: string | null; label: string }) {
+  if (name) {
+    return (
+      <span className="preview-team resolved">
+        {name}
+        <span className="preview-team-label">{label}</span>
+      </span>
+    );
+  }
+  return <span className="preview-team unresolved">{label}</span>;
+}
+
+function BracketPreviewModal({
+  onClose,
+  onConfirmed,
+}: {
+  onClose: () => void;
+  onConfirmed: (filled: number) => void;
+}) {
+  const [previewResult] = useQuery<{ previewBracket: BracketSlot[] }>({
+    query: PreviewBracketQuery,
+    requestPolicy: "network-only",
+  });
+  const [{ fetching: saving }, recompute] = useMutation<{ recomputeBracket: number }>(
+    RecomputeBracketMutation,
+  );
+  const [error, setError] = useState<string | null>(null);
+
+  const slots = previewResult.data?.previewBracket ?? [];
+  const resolvedCount = slots.reduce((n, s) => n + (s.homeName ? 1 : 0) + (s.awayName ? 1 : 0), 0);
+
+  async function handleConfirm() {
+    setError(null);
+    const res = await recompute({});
+    if (res.error) {
+      setError(res.error.message);
+    } else {
+      onConfirmed(res.data?.recomputeBracket ?? 0);
+    }
+  }
+
+  return (
+    <div className="preview-overlay">
+      <div className="preview-modal">
+        <div className="preview-header">
+          <button
+            type="button"
+            className="preview-close-btn"
+            onClick={onClose}
+            aria-label="Close preview"
+          >
+            ×
+          </button>
+          <h2>Round of 32 preview</h2>
+          <span className="preview-sub">
+            Computed from recorded results — nothing is saved until you confirm.
+          </span>
+        </div>
+        <div className="preview-body">
+          {previewResult.fetching ? (
+            <div className="preview-loading">Computing…</div>
+          ) : previewResult.error ? (
+            <div className="error-banner">{previewResult.error.message}</div>
+          ) : (
+            slots.map((s) => (
+              <div key={s.matchId} className="preview-row">
+                <SlotTeam name={s.homeName} label={s.homeLabel} />
+                <span className="preview-vs">vs</span>
+                <SlotTeam name={s.awayName} label={s.awayLabel} />
+              </div>
+            ))
+          )}
+        </div>
+        {error && <div className="error-banner">{error}</div>}
+        <div className="preview-footer">
+          <span className="preview-count">{resolvedCount} of 32 slots resolved</span>
+          <div className="preview-actions">
+            <button
+              type="button"
+              className="preview-cancel-btn"
+              onClick={onClose}
+              disabled={saving}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="preview-confirm-btn"
+              onClick={handleConfirm}
+              disabled={saving || previewResult.fetching || resolvedCount === 0}
+            >
+              {saving ? "Saving…" : "Confirm & save"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function AdminPage() {
   const [meResult] = useQuery<MeData>({ query: MeQuery });
   const [matchesResult, reexecute] = useQuery<{ matches: MatchData[] }>({
@@ -174,28 +285,13 @@ export function AdminPage() {
   });
 
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
-  const [{ fetching: recomputing }, recompute] = useMutation<{ recomputeBracket: number }>(
-    RecomputeBracketMutation,
-  );
+  const [previewOpen, setPreviewOpen] = useState(false);
   const [recomputeMsg, setRecomputeMsg] = useState<string | null>(null);
 
   const me = meResult.data?.me;
 
   if (meResult.fetching) return <div>Loading…</div>;
   if (!me?.isAdmin) return <div>Access denied</div>;
-
-  async function handleRecompute() {
-    setRecomputeMsg(null);
-    const res = await recompute({});
-    if (res.error) {
-      setRecomputeMsg(`Error: ${res.error.message}`);
-    } else {
-      setRecomputeMsg(
-        `✓ Bracket recomputed — ${res.data?.recomputeBracket ?? 0} R32 slots filled.`,
-      );
-      reexecute({ requestPolicy: "network-only" });
-    }
-  }
 
   // Play a brief "saved" animation on the card, then refetch — which drops the
   // now-resolved match from the pending list.
@@ -228,6 +324,16 @@ export function AdminPage() {
   return (
     <div className="admin-page">
       <NavBar currentUser={me} />
+      {previewOpen && (
+        <BracketPreviewModal
+          onClose={() => setPreviewOpen(false)}
+          onConfirmed={(filled) => {
+            setRecomputeMsg(`✓ Bracket saved — ${filled} R32 slots filled.`);
+            setPreviewOpen(false);
+            reexecute({ requestPolicy: "network-only" });
+          }}
+        />
+      )}
       <div className="admin-header">
         <h1>🛠 Admin</h1>
         <span className="admin-subtitle">Record match results</span>
@@ -235,11 +341,13 @@ export function AdminPage() {
           <button
             type="button"
             className="admin-recompute-btn"
-            onClick={handleRecompute}
-            disabled={recomputing}
-            title="Re-resolve all R32 teams (group winners/runners-up + best thirds) from recorded results"
+            onClick={() => {
+              setRecomputeMsg(null);
+              setPreviewOpen(true);
+            }}
+            title="Preview and apply R32 team resolution (group winners/runners-up + best thirds) from recorded results"
           >
-            {recomputing ? "Recomputing…" : "↻ Recompute bracket"}
+            ↻ Recompute bracket
           </button>
           {recomputeMsg && <span className="admin-recompute-msg">{recomputeMsg}</span>}
         </div>
