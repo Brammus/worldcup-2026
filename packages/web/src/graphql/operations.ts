@@ -67,6 +67,26 @@ export const SetResultMutation = `
   }
 `;
 
+export const RecomputeBracketMutation = `
+  mutation RecomputeBracket {
+    recomputeBracket
+  }
+`;
+
+export const PreviewBracketQuery = `
+  query PreviewBracket {
+    previewBracket {
+      matchId
+      round
+      startsAt
+      homeLabel
+      awayLabel
+      homeName
+      awayName
+    }
+  }
+`;
+
 export const SetPickMutation = `
   mutation SetPick($matchId: ID!, $teamId: ID) {
     setPick(matchId: $matchId, teamId: $teamId) {
@@ -103,6 +123,8 @@ export const UserPicksQuery = `
         startsAt
         homeTeamLabel
         awayTeamLabel
+        homeTeam { id name group }
+        awayTeam { id name group }
         result { homeScore awayScore winnerTeamId }
       }
       pickedTeam { id name group }

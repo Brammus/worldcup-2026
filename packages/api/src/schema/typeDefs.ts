@@ -11,6 +11,17 @@ export const typeDefs = /* GraphQL */ `
     osrsTeams: [OsrsTeam!]!
     myOsrsRanking: [OsrsTeamRanking!]!
     userOsrsRanking(userId: ID!): [OsrsTeamRanking!]!
+    previewBracket: [BracketSlot!]!
+  }
+
+  type BracketSlot {
+    matchId: ID!
+    round: String!
+    startsAt: String!
+    homeLabel: String!
+    awayLabel: String!
+    homeName: String
+    awayName: String
   }
 
   type MatchPick {
@@ -32,6 +43,7 @@ export const typeDefs = /* GraphQL */ `
     logout: Boolean!
     setPick(matchId: ID!, teamId: ID): Pick!
     setResult(matchId: ID!, winnerId: ID, homeScore: Int!, awayScore: Int!): Match!
+    recomputeBracket: Int!
     rankOsrsTeams(rankings: [OsrsRankingInput!]!): [OsrsTeamRanking!]!
   }
 
