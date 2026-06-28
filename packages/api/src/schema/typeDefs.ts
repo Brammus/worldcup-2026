@@ -8,9 +8,6 @@ export const typeDefs = /* GraphQL */ `
     leaderboard: [LeaderboardEntry!]!
     userPicks(userId: ID!): [Pick!]!
     matchPicks(matchId: ID!): [MatchPick!]!
-    osrsTeams: [OsrsTeam!]!
-    myOsrsRanking: [OsrsTeamRanking!]!
-    userOsrsRanking(userId: ID!): [OsrsTeamRanking!]!
     previewBracket: [BracketSlot!]!
   }
 
@@ -43,33 +40,8 @@ export const typeDefs = /* GraphQL */ `
     logout: Boolean!
     setPick(matchId: ID!, teamId: ID): Pick!
     setResult(matchId: ID!, winnerId: ID, homeScore: Int!, awayScore: Int!): Match!
+    setMatchTeams(matchId: ID!, homeTeamId: ID, awayTeamId: ID): Match!
     recomputeBracket: Int!
-    rankOsrsTeams(rankings: [OsrsRankingInput!]!): [OsrsTeamRanking!]!
-  }
-
-  type OsrsTeamRanking {
-    rank: Int!
-    team: OsrsTeam!
-  }
-
-  input OsrsRankingInput {
-    teamId: ID!
-    rank: Int!
-  }
-
-  type OsrsTeam {
-    id: ID!
-    name: String!
-    color: String!
-    players: [OsrsPlayer!]!
-    pickCount: Int!
-  }
-
-  type OsrsPlayer {
-    id: ID!
-    name: String!
-    isCaptain: Boolean!
-    streamUrl: String
   }
 
   type AuthResult {

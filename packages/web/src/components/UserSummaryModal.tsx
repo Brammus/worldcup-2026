@@ -1,5 +1,5 @@
 import { useQuery } from "urql";
-import { UserOsrsRankingQuery, UserPicksQuery } from "../graphql/operations";
+import { UserPicksQuery } from "../graphql/operations";
 
 type PickMatch = {
   id: string;
@@ -75,18 +75,11 @@ export function UserSummaryModal({ userId, username, onClose }: Props) {
     query: UserPicksQuery,
     variables: { userId },
   });
-  const [osrsResult] = useQuery<{
-    userOsrsRanking: { rank: number; team: { id: string; name: string; color: string } }[];
-  }>({
-    query: UserOsrsRankingQuery,
-    variables: { userId },
-  });
 
   const picks = picksResult.data?.userPicks ?? [];
   const predictions = computeGroupPredictions(picks);
-  const osrsRanking = [...(osrsResult.data?.userOsrsRanking ?? [])].sort((a, b) => a.rank - b.rank);
 
-  const fetching = picksResult.fetching || osrsResult.fetching;
+  const fetching = picksResult.fetching;
 
   return (
     <div
@@ -123,23 +116,6 @@ export function UserSummaryModal({ userId, username, onClose }: Props) {
                 </div>
               ))}
             </div>
-
-            <div className="modal-section-label">🎮 OSRS ranking</div>
-            {osrsRanking.length === 0 ? (
-              <p className="modal-empty">No OSRS ranking submitted yet.</p>
-            ) : (
-              <ol className="osrs-ranking-list">
-                {osrsRanking.map((entry) => (
-                  <li key={entry.rank} className="osrs-ranking-list-item">
-                    <span
-                      className="osrs-ranking-list-dot"
-                      style={{ backgroundColor: entry.team.color }}
-                    />
-                    {entry.team.name}
-                  </li>
-                ))}
-              </ol>
-            )}
           </>
         )}
       </div>

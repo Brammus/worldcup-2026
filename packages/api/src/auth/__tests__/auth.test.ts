@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, it } from "bun:test";
 import { db } from "../../db/client";
 import { runMigrations } from "../../db/migrate";
-import { osrsTeamPicks, picks, users } from "../../db/schema";
+import { picks, users } from "../../db/schema";
 import { resolvers } from "../../schema/resolvers";
 import type { GraphQLContext } from "../../schema/resolvers";
 
@@ -12,7 +12,6 @@ function makeCtx(currentUser: GraphQLContext["currentUser"] = null): GraphQLCont
 beforeAll(async () => {
   await runMigrations();
   await db.delete(picks);
-  await db.delete(osrsTeamPicks);
   await db.delete(users);
 });
 

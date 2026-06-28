@@ -73,6 +73,31 @@ export const matchesResolvers = {
       return match;
     },
 
+    // Manually set (or clear) the two teams on a knockout match. Used by the
+    // admin bracket editor when the auto-derived bracket can't be relied on.
+    setMatchTeams: async (
+      _: unknown,
+      {
+        matchId,
+        homeTeamId,
+        awayTeamId,
+      }: { matchId: string; homeTeamId?: string | null; awayTeamId?: string | null },
+      ctx: GraphQLContext,
+    ) => {
+      if (!ctx.currentUser?.isAdmin) throw new GraphQLError("Forbidden");
+
+      const [match] = await ctx.db.select().from(matches).where(eq(matches.id, matchId));
+      if (!match) throw new GraphQLError("Match not found");
+
+      await ctx.db
+        .update(matches)
+        .set({ homeTeamId: homeTeamId ?? null, awayTeamId: awayTeamId ?? null })
+        .where(eq(matches.id, matchId));
+
+      const [updated] = await ctx.db.select().from(matches).where(eq(matches.id, matchId));
+      return updated;
+    },
+
     // Re-run group → R32 propagation (1st/2nd of each group + best thirds) over
     // results that are already recorded. Idempotent; used to backfill brackets
     // whose results were entered before propagation existed. Returns the number
@@ -215,18 +240,19 @@ async function propagateGroupToR32(db: DB, groupLetter: string | null) {
   const firstLabel = `1st Group ${groupLetter}`;
   const secondLabel = `2nd Group ${groupLetter}`;
 
+  // Only fill empty slots — never overwrite a team an admin set by hand.
   for (const r32 of r32Matches) {
     if (firstId) {
-      if (r32.homeTeamLabel === firstLabel) {
+      if (r32.homeTeamLabel === firstLabel && !r32.homeTeamId) {
         await db.update(matches).set({ homeTeamId: firstId }).where(eq(matches.id, r32.id));
-      } else if (r32.awayTeamLabel === firstLabel) {
+      } else if (r32.awayTeamLabel === firstLabel && !r32.awayTeamId) {
         await db.update(matches).set({ awayTeamId: firstId }).where(eq(matches.id, r32.id));
       }
     }
     if (secondId) {
-      if (r32.homeTeamLabel === secondLabel) {
+      if (r32.homeTeamLabel === secondLabel && !r32.homeTeamId) {
         await db.update(matches).set({ homeTeamId: secondId }).where(eq(matches.id, r32.id));
-      } else if (r32.awayTeamLabel === secondLabel) {
+      } else if (r32.awayTeamLabel === secondLabel && !r32.awayTeamId) {
         await db.update(matches).set({ awayTeamId: secondId }).where(eq(matches.id, r32.id));
       }
     }
@@ -253,9 +279,15 @@ async function propagateBestThirds(db: DB) {
           : null;
       if (!side) return null;
       const label = side === "home" ? m.homeTeamLabel : m.awayTeamLabel;
-      return { id: m.id, side, eligible: parseEligibleGroups(label) };
+      const currentId = side === "home" ? m.homeTeamId : m.awayTeamId;
+      return { id: m.id, side, eligible: parseEligibleGroups(label), currentId };
     })
-    .filter((s): s is { id: string; side: "home" | "away"; eligible: string[] } => s !== null);
+    .filter(
+      (
+        s,
+      ): s is { id: string; side: "home" | "away"; eligible: string[]; currentId: string | null } =>
+        s !== null,
+    );
 
   if (slots.length === 0) return;
 
@@ -282,6 +314,7 @@ async function propagateBestThirds(db: DB) {
   if (!assignment) return;
 
   for (const slot of slots) {
+    if (slot.currentId) continue; // don't overwrite a hand-set team
     const group = assignment[slot.id];
     const teamId = group ? groupToTeam[group] : undefined;
     if (!teamId) continue;

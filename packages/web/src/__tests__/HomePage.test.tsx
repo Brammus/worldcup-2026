@@ -34,11 +34,26 @@ describe("HomePage", () => {
     expect(container.textContent).toContain("Final");
   });
 
-  it("renders group tabs when on Group Stage", async () => {
+  it("defaults to the Round of 32 tab", async () => {
     const { container } = await renderWithMocks(withRouter(<HomePage />), {
       Matches: { matches: [] },
       Me: { me: null },
     });
+    const activeTab = container.querySelector(".tab.active");
+    expect(activeTab?.textContent).toContain("Round of 32");
+    // group tabs only show on the Group Stage tab
+    expect(container.querySelector(".group-tabs")).toBeNull();
+  });
+
+  it("renders group tabs when the Group Stage tab is selected", async () => {
+    const { container } = await renderWithMocks(withRouter(<HomePage />), {
+      Matches: { matches: [] },
+      Me: { me: null },
+    });
+    const groupTab = Array.from(container.querySelectorAll(".tab")).find((el) =>
+      el.textContent?.includes("Group Stage"),
+    ) as HTMLButtonElement;
+    flushSync(() => groupTab.click());
     expect(container.textContent).toContain("Group A");
     expect(container.textContent).toContain("Group L");
   });

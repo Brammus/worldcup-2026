@@ -1,13 +1,8 @@
 import { useState } from "react";
 import { useMutation, useQuery } from "urql";
+import { KnockoutTeamEditor } from "../components/KnockoutTeamEditor";
 import { NavBar } from "../components/NavBar";
-import {
-  MatchesQuery,
-  MeQuery,
-  PreviewBracketQuery,
-  RecomputeBracketMutation,
-  SetResultMutation,
-} from "../graphql/operations";
+import { MatchesQuery, MeQuery, SetResultMutation } from "../graphql/operations";
 
 type MatchResult = { homeScore: number; awayScore: number; winnerTeamId: string | null } | null;
 
@@ -16,8 +11,8 @@ type MatchData = {
   round: string;
   homeTeamLabel: string;
   awayTeamLabel: string;
-  homeTeam: { id: string } | null;
-  awayTeam: { id: string } | null;
+  homeTeam: { id: string; name: string } | null;
+  awayTeam: { id: string; name: string } | null;
   startsAt: string;
   isLocked: boolean;
   myPick: null;
@@ -70,14 +65,16 @@ function MatchResultForm({
   const [error, setError] = useState<string | null>(null);
 
   const isGroup = match.round === "group";
+  const homeName = match.homeTeam?.name ?? match.homeTeamLabel;
+  const awayName = match.awayTeam?.name ?? match.awayTeamLabel;
 
   const { bothFilled, isLevel, outcome } = deriveOutcome(homeScore, awayScore, isGroup, tiebreak);
 
   const outcomeLabel =
     outcome === "home"
-      ? `${match.homeTeamLabel} win`
+      ? `${homeName} win`
       : outcome === "away"
-        ? `${match.awayTeamLabel} win`
+        ? `${awayName} win`
         : outcome === "draw"
           ? "Draw"
           : null;
@@ -109,7 +106,7 @@ function MatchResultForm({
       <div className="result-score-row">
         <div className="score-field">
           <label className="score-label">
-            {match.homeTeamLabel}
+            {homeName}
             <input
               className="score-input"
               type="number"
@@ -124,7 +121,7 @@ function MatchResultForm({
         <span className="score-sep">–</span>
         <div className="score-field">
           <label className="score-label">
-            {match.awayTeamLabel}
+            {awayName}
             <input
               className="score-input"
               type="number"
@@ -148,8 +145,8 @@ function MatchResultForm({
                 onChange={(e) => setTiebreak(e.target.value as "home" | "away")}
                 disabled={fetching}
               >
-                <option value="home">{match.homeTeamLabel}</option>
-                <option value="away">{match.awayTeamLabel}</option>
+                <option value="home">{homeName}</option>
+                <option value="away">{awayName}</option>
               </select>
             </label>
           ) : (
@@ -167,116 +164,6 @@ function MatchResultForm({
   );
 }
 
-type BracketSlot = {
-  matchId: string;
-  round: string;
-  startsAt: string;
-  homeLabel: string;
-  awayLabel: string;
-  homeName: string | null;
-  awayName: string | null;
-};
-
-function SlotTeam({ name, label }: { name: string | null; label: string }) {
-  if (name) {
-    return (
-      <span className="preview-team resolved">
-        {name}
-        <span className="preview-team-label">{label}</span>
-      </span>
-    );
-  }
-  return <span className="preview-team unresolved">{label}</span>;
-}
-
-function BracketPreviewModal({
-  onClose,
-  onConfirmed,
-}: {
-  onClose: () => void;
-  onConfirmed: (filled: number) => void;
-}) {
-  const [previewResult] = useQuery<{ previewBracket: BracketSlot[] }>({
-    query: PreviewBracketQuery,
-    requestPolicy: "network-only",
-  });
-  const [{ fetching: saving }, recompute] = useMutation<{ recomputeBracket: number }>(
-    RecomputeBracketMutation,
-  );
-  const [error, setError] = useState<string | null>(null);
-
-  const slots = previewResult.data?.previewBracket ?? [];
-  const resolvedCount = slots.reduce((n, s) => n + (s.homeName ? 1 : 0) + (s.awayName ? 1 : 0), 0);
-
-  async function handleConfirm() {
-    setError(null);
-    const res = await recompute({});
-    if (res.error) {
-      setError(res.error.message);
-    } else {
-      onConfirmed(res.data?.recomputeBracket ?? 0);
-    }
-  }
-
-  return (
-    <div className="preview-overlay">
-      <div className="preview-modal">
-        <div className="preview-header">
-          <button
-            type="button"
-            className="preview-close-btn"
-            onClick={onClose}
-            aria-label="Close preview"
-          >
-            ×
-          </button>
-          <h2>Round of 32 preview</h2>
-          <span className="preview-sub">
-            Computed from recorded results — nothing is saved until you confirm.
-          </span>
-        </div>
-        <div className="preview-body">
-          {previewResult.fetching ? (
-            <div className="preview-loading">Computing…</div>
-          ) : previewResult.error ? (
-            <div className="error-banner">{previewResult.error.message}</div>
-          ) : (
-            slots.map((s) => (
-              <div key={s.matchId} className="preview-row">
-                <SlotTeam name={s.homeName} label={s.homeLabel} />
-                <span className="preview-vs">vs</span>
-                <SlotTeam name={s.awayName} label={s.awayLabel} />
-              </div>
-            ))
-          )}
-        </div>
-        {error && <div className="error-banner">{error}</div>}
-        <div className="preview-footer">
-          <span className="preview-count">{resolvedCount} of 32 slots resolved</span>
-          <div className="preview-actions">
-            <button
-              type="button"
-              className="preview-cancel-btn"
-              onClick={onClose}
-              disabled={saving}
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              className="preview-confirm-btn"
-              onClick={handleConfirm}
-              disabled={saving || previewResult.fetching || resolvedCount === 0}
-            >
-              {saving ? "Saving…" : "Confirm & save"}
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export function AdminPage() {
   const [meResult] = useQuery<MeData>({ query: MeQuery });
   const [matchesResult, reexecute] = useQuery<{ matches: MatchData[] }>({
@@ -285,8 +172,6 @@ export function AdminPage() {
   });
 
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
-  const [previewOpen, setPreviewOpen] = useState(false);
-  const [recomputeMsg, setRecomputeMsg] = useState<string | null>(null);
 
   const me = meResult.data?.me;
 
@@ -324,33 +209,9 @@ export function AdminPage() {
   return (
     <div className="admin-page">
       <NavBar currentUser={me} />
-      {previewOpen && (
-        <BracketPreviewModal
-          onClose={() => setPreviewOpen(false)}
-          onConfirmed={(filled) => {
-            setRecomputeMsg(`✓ Bracket saved — ${filled} R32 slots filled.`);
-            setPreviewOpen(false);
-            reexecute({ requestPolicy: "network-only" });
-          }}
-        />
-      )}
       <div className="admin-header">
         <h1>🛠 Admin</h1>
         <span className="admin-subtitle">Record match results</span>
-        <div className="admin-actions">
-          <button
-            type="button"
-            className="admin-recompute-btn"
-            onClick={() => {
-              setRecomputeMsg(null);
-              setPreviewOpen(true);
-            }}
-            title="Preview and apply R32 team resolution (group winners/runners-up + best thirds) from recorded results"
-          >
-            ↻ Recompute bracket
-          </button>
-          {recomputeMsg && <span className="admin-recompute-msg">{recomputeMsg}</span>}
-        </div>
       </div>
       {pending.length === 0 ? (
         <div className="admin-all-done">✅ All results recorded.</div>
@@ -376,15 +237,16 @@ export function AdminPage() {
                 </span>
               </div>
               <div className="admin-match-teams">
-                {match.homeTeamLabel}
+                {match.homeTeam?.name ?? match.homeTeamLabel}
                 <span className="admin-vs">vs</span>
-                {match.awayTeamLabel}
+                {match.awayTeam?.name ?? match.awayTeamLabel}
               </div>
               <MatchResultForm match={match} onDone={() => handleSaved(match.id)} />
             </div>
           ))}
         </div>
       )}
+      <KnockoutTeamEditor />
     </div>
   );
 }

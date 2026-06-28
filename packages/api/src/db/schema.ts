@@ -53,46 +53,8 @@ export const matchResults = pgTable("match_results", {
   recordedAt: timestamp("recorded_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
-export const osrsTeams = pgTable("osrs_teams", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  name: text("name").notNull().unique(),
-  color: text("color").notNull(),
-});
-
-export const osrsPlayers = pgTable("osrs_players", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  teamId: uuid("team_id")
-    .notNull()
-    .references(() => osrsTeams.id),
-  name: text("name").notNull(),
-  isCaptain: boolean("is_captain").notNull().default(false),
-  streamUrl: text("stream_url"),
-});
-
-export const osrsTeamPicks = pgTable(
-  "osrs_team_picks",
-  {
-    id: uuid("id").primaryKey().defaultRandom(),
-    userId: uuid("user_id")
-      .notNull()
-      .references(() => users.id),
-    teamId: uuid("team_id")
-      .notNull()
-      .references(() => osrsTeams.id),
-    rank: integer("rank").notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-  },
-  (t) => [
-    unique("osrs_picks_user_team_unique").on(t.userId, t.teamId),
-    unique("osrs_picks_user_rank_unique").on(t.userId, t.rank),
-  ],
-);
-
 export type Team = typeof teams.$inferSelect;
 export type Match = typeof matches.$inferSelect;
 export type User = typeof users.$inferSelect;
 export type Pick = typeof picks.$inferSelect;
 export type MatchResult = typeof matchResults.$inferSelect;
-export type OsrsTeam = typeof osrsTeams.$inferSelect;
-export type OsrsPlayer = typeof osrsPlayers.$inferSelect;
-export type OsrsTeamPick = typeof osrsTeamPicks.$inferSelect;

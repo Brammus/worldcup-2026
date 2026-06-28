@@ -1,13 +1,5 @@
 import type { DB } from "./client";
-import {
-  matchResults,
-  matches,
-  osrsPlayers,
-  osrsTeamPicks,
-  osrsTeams,
-  picks,
-  teams,
-} from "./schema";
+import { matchResults, matches, picks, teams } from "./schema";
 
 // EDT = UTC-4
 const t = (iso: string) => new Date(iso);
@@ -934,9 +926,6 @@ const KNOCKOUT_MATCHES: KnockoutMatch[] = [
 
 export async function seed(db: DB) {
   // Wipe all data in FK-safe order
-  await db.delete(osrsTeamPicks);
-  await db.delete(osrsPlayers);
-  await db.delete(osrsTeams);
   await db.delete(picks);
   await db.delete(matchResults);
   await db.delete(matches);
@@ -979,97 +968,12 @@ export async function seed(db: DB) {
   }));
 
   await db.insert(matches).values([...groupMatchValues, ...knockoutMatchValues]);
-
-  // 4. Insert OSRS teams and players
-  const OSRS_TEAM_DATA = [
-    {
-      name: "DINO",
-      color: "#2c2c3e",
-      players: [
-        { name: "DINO", isCaptain: true },
-        { name: "BOATY", isCaptain: false },
-        { name: "61M", isCaptain: false },
-        { name: "SICK NERD", isCaptain: false },
-        { name: "MMORPG", isCaptain: false },
-      ],
-    },
-    {
-      name: "WESTHAM",
-      color: "#2d7a2d",
-      players: [
-        { name: "WESTHAM", isCaptain: true },
-        { name: "GREG", isCaptain: false },
-        { name: "MIKA", isCaptain: false },
-        { name: "ELIOP14", isCaptain: false },
-        { name: "FAUX", isCaptain: false },
-      ],
-    },
-    {
-      name: "FRAMED",
-      color: "#c85c78",
-      players: [
-        { name: "FRAMED", isCaptain: true },
-        { name: "LAKE", isCaptain: false },
-        { name: "PIP", isCaptain: false },
-        { name: "SYNQ", isCaptain: false },
-        { name: "ALFIE", isCaptain: false },
-      ],
-    },
-    {
-      name: "RHYS",
-      color: "#4a90c4",
-      players: [
-        { name: "RHYS", isCaptain: true },
-        { name: "TORVESTA", isCaptain: false },
-        { name: "MUTS", isCaptain: false },
-        { name: "V THE VICTIM", isCaptain: false },
-        { name: "C ENGINEER", isCaptain: false },
-      ],
-    },
-    {
-      name: "PURPP",
-      color: "#7c4dbb",
-      players: [
-        { name: "PURPP", isCaptain: true },
-        { name: "SKIDDLER", isCaptain: false },
-        { name: "SKILL SPECS", isCaptain: false },
-        { name: "COXIE", isCaptain: false },
-        { name: "MR MAMMAL", isCaptain: false },
-      ],
-    },
-    {
-      name: "ODABLOCK",
-      color: "#c9a227",
-      players: [
-        { name: "ODABLOCK", isCaptain: true },
-        { name: "DUBIEDOBIES", isCaptain: false },
-        { name: "GNOMONKEY", isCaptain: false },
-        { name: "RAIKESY", isCaptain: false },
-        { name: "EVSCAPE", isCaptain: false },
-      ],
-    },
-  ];
-
-  for (const teamData of OSRS_TEAM_DATA) {
-    const [insertedTeam] = await db
-      .insert(osrsTeams)
-      .values({ name: teamData.name, color: teamData.color })
-      .returning();
-    if (!insertedTeam) throw new Error(`Failed to insert OSRS team: ${teamData.name}`);
-    await db.insert(osrsPlayers).values(
-      teamData.players.map((p) => ({
-        teamId: insertedTeam.id,
-        name: p.name,
-        isCaptain: p.isCaptain,
-      })),
-    );
-  }
 }
 
 /* c8 ignore next 5 */
 if (import.meta.main) {
   const { db } = await import("./client");
   await seed(db);
-  console.log("Seeded 48 teams, 104 matches, and 6 OSRS teams with players");
+  console.log("Seeded 48 teams and 104 matches");
   process.exit(0);
 }

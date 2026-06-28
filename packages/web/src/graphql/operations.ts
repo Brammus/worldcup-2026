@@ -67,22 +67,22 @@ export const SetResultMutation = `
   }
 `;
 
-export const RecomputeBracketMutation = `
-  mutation RecomputeBracket {
-    recomputeBracket
+export const TeamsQuery = `
+  query Teams {
+    teams {
+      id
+      name
+      group
+    }
   }
 `;
 
-export const PreviewBracketQuery = `
-  query PreviewBracket {
-    previewBracket {
-      matchId
-      round
-      startsAt
-      homeLabel
-      awayLabel
-      homeName
-      awayName
+export const SetMatchTeamsMutation = `
+  mutation SetMatchTeams($matchId: ID!, $homeTeamId: ID, $awayTeamId: ID) {
+    setMatchTeams(matchId: $matchId, homeTeamId: $homeTeamId, awayTeamId: $awayTeamId) {
+      id
+      homeTeam { id name group }
+      awayTeam { id name group }
     }
   }
 `;
@@ -137,37 +137,6 @@ export const MatchPicksQuery = `
     matchPicks(matchId: $matchId) {
       user { id username }
       pickedTeam { id name group }
-    }
-  }
-`;
-
-export const OsrsTeamsQuery = `
-  query OsrsTeams {
-    osrsTeams {
-      id name color pickCount
-      players { id name isCaptain streamUrl }
-    }
-    myOsrsRanking {
-      rank
-      team { id }
-    }
-  }
-`;
-
-export const UserOsrsRankingQuery = `
-  query UserOsrsRanking($userId: ID!) {
-    userOsrsRanking(userId: $userId) {
-      rank
-      team { id name color }
-    }
-  }
-`;
-
-export const RankOsrsTeamsMutation = `
-  mutation RankOsrsTeams($rankings: [OsrsRankingInput!]!) {
-    rankOsrsTeams(rankings: $rankings) {
-      rank
-      team { id name }
     }
   }
 `;

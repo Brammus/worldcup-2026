@@ -2,7 +2,7 @@ import { beforeAll, describe, expect, it } from "bun:test";
 import { eq } from "drizzle-orm";
 import { db } from "../../db/client";
 import { runMigrations } from "../../db/migrate";
-import { matchResults, matches, osrsTeamPicks, picks, teams, users } from "../../db/schema";
+import { matchResults, matches, picks, teams, users } from "../../db/schema";
 import type { GraphQLContext } from "../resolvers";
 import { resolvers } from "../resolvers";
 
@@ -28,7 +28,6 @@ beforeAll(async () => {
   await db.delete(picks);
   await db.delete(matchResults);
   await db.delete(matches);
-  await db.delete(osrsTeamPicks);
   await db.delete(users);
   await db.delete(teams);
 
@@ -660,5 +659,70 @@ describe("Mutation.recomputeBracket (best thirds)", () => {
       currentUser: { id: regularUserId, username: "regular", isAdmin: false },
     });
     await expect(resolvers.Query.previewBracket(undefined, {}, ctx)).rejects.toThrow("Forbidden");
+  });
+});
+
+describe("Mutation.setMatchTeams", () => {
+  it("sets both teams on a knockout match", async () => {
+    await db.delete(picks);
+    await db.delete(matchResults);
+    await db.delete(matches);
+    await db.delete(teams);
+
+    const [a] = await db
+      .insert(teams)
+      .values({ name: "Brazil", groupLetter: "C" })
+      .returning({ id: teams.id });
+    const [b] = await db
+      .insert(teams)
+      .values({ name: "Japan", groupLetter: "E" })
+      .returning({ id: teams.id });
+    const [m] = await db
+      .insert(matches)
+      .values({
+        round: "r32",
+        homeTeamLabel: "1st Group C",
+        awayTeamLabel: "2nd Group F",
+        venue: "Stadium",
+        startsAt: FUTURE,
+      })
+      .returning({ id: matches.id });
+
+    const adminCtx = makeCtx({
+      currentUser: { id: adminUserId, username: "admin", isAdmin: true },
+    });
+    await resolvers.Mutation.setMatchTeams(
+      undefined,
+      { matchId: m?.id ?? "", homeTeamId: a?.id ?? "", awayTeamId: b?.id ?? "" },
+      adminCtx,
+    );
+
+    const [row] = await db
+      .select()
+      .from(matches)
+      .where(eq(matches.id, m?.id ?? ""));
+    expect(row?.homeTeamId).toBe(a?.id ?? "");
+    expect(row?.awayTeamId).toBe(b?.id ?? "");
+
+    // Clearing a side is allowed
+    await resolvers.Mutation.setMatchTeams(
+      undefined,
+      { matchId: m?.id ?? "", homeTeamId: a?.id ?? "", awayTeamId: null },
+      adminCtx,
+    );
+    const [cleared] = await db
+      .select()
+      .from(matches)
+      .where(eq(matches.id, m?.id ?? ""));
+    expect(cleared?.awayTeamId).toBeNull();
+  });
+
+  it("throws Forbidden for non-admins", async () => {
+    const ctx = makeCtx({
+      currentUser: { id: regularUserId, username: "regular", isAdmin: false },
+    });
+    await expect(
+      resolvers.Mutation.setMatchTeams(undefined, { matchId: "x" }, ctx),
+    ).rejects.toThrow("Forbidden");
   });
 });

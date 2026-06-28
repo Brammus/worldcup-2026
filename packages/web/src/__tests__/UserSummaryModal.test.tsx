@@ -137,7 +137,7 @@ describe("UserSummaryModal", () => {
     ];
     const { container } = await renderWithMocks(
       <UserSummaryModal userId="u1" username="alice" onClose={mock()} />,
-      { UserPicks: { userPicks: tiedPicks }, UserOsrsRanking: { userOsrsRanking: [] } },
+      { UserPicks: { userPicks: tiedPicks } },
     );
     const groupCards = Array.from(container.querySelectorAll(".group-card"));
     const groupACard = groupCards.find((c) => c.textContent?.includes("Group A"));

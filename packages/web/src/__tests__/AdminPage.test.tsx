@@ -97,40 +97,40 @@ describe("AdminPage", () => {
     expect(submitBtn.disabled).toBe(true);
   });
 
-  it("opens a read-only bracket preview before saving", async () => {
+  it("renders the knockout team editor", async () => {
     const { container } = await renderWithMocks(withRouter(<AdminPage />), {
       Me: { me: { id: "u1", username: "admin", isAdmin: true } },
-      Matches: { matches: [pendingMatch] },
-      PreviewBracket: {
-        previewBracket: [
+      Matches: {
+        matches: [
           {
-            matchId: "r1",
+            id: "r1",
             round: "r32",
-            startsAt: new Date().toISOString(),
-            homeLabel: "1st Group A",
-            awayLabel: "Best 3rd (A/B)",
-            homeName: "Brazil",
-            awayName: "Morocco",
+            matchday: null,
+            group: null,
+            homeTeamLabel: "1st Group A",
+            awayTeamLabel: "2nd Group B",
+            homeTeam: null,
+            awayTeam: null,
+            startsAt: new Date(Date.now() + 7_200_000).toISOString(),
+            isLocked: false,
+            myPick: null,
+            result: null,
           },
+        ],
+      },
+      Teams: {
+        teams: [
+          { id: "t1", name: "Brazil", group: "C" },
+          { id: "t2", name: "Japan", group: "E" },
         ],
       },
     });
 
-    // No modal until the button is clicked
-    expect(container.querySelector(".preview-modal")).toBeNull();
-
-    const recomputeBtn = [...container.querySelectorAll("button")].find((b) =>
-      b.textContent?.includes("Recompute bracket"),
-    ) as HTMLButtonElement;
-    flushSync(() => recomputeBtn.click());
-    await Promise.resolve();
-    flushSync(() => {});
-
-    // Modal shows the resolved names (not just the placeholder labels) and a confirm action
-    expect(container.querySelector(".preview-modal")).not.toBeNull();
+    expect(container.querySelector(".kt-editor")).not.toBeNull();
+    expect(container.textContent).toContain("Knockout bracket teams");
+    // dropdown options list the available teams
     expect(container.textContent).toContain("Brazil");
-    expect(container.textContent).toContain("Morocco");
-    expect(container.textContent).toContain("Confirm & save");
+    expect(container.textContent).toContain("Japan");
   });
 });
 
