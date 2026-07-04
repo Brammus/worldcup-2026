@@ -103,12 +103,12 @@ describe("AdminPage", () => {
       Matches: {
         matches: [
           {
-            id: "r1",
-            round: "r32",
+            id: "qf1",
+            round: "qf",
             matchday: null,
             group: null,
-            homeTeamLabel: "1st Group A",
-            awayTeamLabel: "2nd Group B",
+            homeTeamLabel: "QF1",
+            awayTeamLabel: "QF2",
             homeTeam: null,
             awayTeam: null,
             startsAt: new Date(Date.now() + 7_200_000).toISOString(),

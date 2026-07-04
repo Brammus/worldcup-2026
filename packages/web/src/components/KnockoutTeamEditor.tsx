@@ -38,6 +38,10 @@ const ROUND_LABELS: Record<string, string> = {
 
 const ROUND_ORDER = ["r32", "r16", "qf", "sf", "third_place", "final"];
 
+// R32 and R16 are already set correctly, so the editor only exposes the rounds
+// that are still being decided.
+const EDITABLE_ROUNDS = ["qf", "sf", "third_place", "final"];
+
 export function KnockoutTeamEditor() {
   const [teamsResult] = useQuery<{ teams: Team[] }>({ query: TeamsQuery });
   const [matchesResult, refetch] = useQuery<{ matches: KnockoutMatch[] }>({
@@ -59,7 +63,7 @@ export function KnockoutTeamEditor() {
   );
 
   const matches = [...(matchesResult.data?.matches ?? [])]
-    .filter((m) => m.round !== "group")
+    .filter((m) => EDITABLE_ROUNDS.includes(m.round))
     .sort(
       (a, b) =>
         ROUND_ORDER.indexOf(a.round) - ROUND_ORDER.indexOf(b.round) ||
