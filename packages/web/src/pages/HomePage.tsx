@@ -35,7 +35,7 @@ type MeData = {
 };
 
 export function HomePage() {
-  const [activeRound, setActiveRound] = useState("r32");
+  const [activeRound, setActiveRound] = useState("r16");
   const [activeGroup, setActiveGroup] = useState<string | null>("A");
   const [summaryUser, setSummaryUser] = useState<{ userId: string; username: string } | null>(null);
 

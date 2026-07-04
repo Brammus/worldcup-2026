@@ -34,13 +34,13 @@ describe("HomePage", () => {
     expect(container.textContent).toContain("Final");
   });
 
-  it("defaults to the Round of 32 tab", async () => {
+  it("defaults to the Round of 16 tab", async () => {
     const { container } = await renderWithMocks(withRouter(<HomePage />), {
       Matches: { matches: [] },
       Me: { me: null },
     });
     const activeTab = container.querySelector(".tab.active");
-    expect(activeTab?.textContent).toContain("Round of 32");
+    expect(activeTab?.textContent).toContain("Round of 16");
     // group tabs only show on the Group Stage tab
     expect(container.querySelector(".group-tabs")).toBeNull();
   });
