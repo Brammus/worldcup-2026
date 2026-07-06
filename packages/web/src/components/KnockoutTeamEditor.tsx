@@ -38,9 +38,9 @@ const ROUND_LABELS: Record<string, string> = {
 
 const ROUND_ORDER = ["r32", "r16", "qf", "sf", "third_place", "final"];
 
-// R32 and R16 are already set correctly, so the editor only exposes the rounds
-// that are still being decided.
-const EDITABLE_ROUNDS = ["qf", "sf", "third_place", "final"];
+// R32 is set correctly, so the editor exposes R16 onward (kickoff times there
+// still need adjusting) plus the later rounds still being decided.
+const EDITABLE_ROUNDS = ["r16", "qf", "sf", "third_place", "final"];
 
 export function KnockoutTeamEditor() {
   const [teamsResult] = useQuery<{ teams: Team[] }>({ query: TeamsQuery });
